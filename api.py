@@ -4,7 +4,7 @@ from flask import Blueprint, request, session, current_app, send_file
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, seed_user
 from auth import ok, fail, login_required, root_required, csrf_token, check_csrf
-from services.finance_service import balance_sql, account_balance, transaction_effect, ensure_sufficient_balance
+from services.finance_service import balance_sql, account_balance
 
 api=Blueprint('api',__name__,url_prefix='/api')
 EMAIL=re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -32,6 +32,16 @@ def valid_date(value, name='Ngày'):
 def valid_month(value):
     if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])',str(value)): raise ValueError('Tháng không hợp lệ')
     return str(value)
+
+def payment_method_id(value=None):
+    if value not in (None,''):
+        method=owned('accounts',integer(value,'Phương thức'))
+        if not method:raise ValueError('Phương thức thanh toán không hợp lệ')
+        return method['id']
+    row=get_db().execute("SELECT id FROM accounts WHERE user_id=? AND name='Không xác định' COLLATE NOCASE",(session['user_id'],)).fetchone()
+    if not row:
+        cur=get_db().execute("INSERT INTO accounts(user_id,name,is_hidden) VALUES(?,'Không xác định',1)",(session['user_id'],));return cur.lastrowid
+    return row['id']
 
 @api.post('/auth/login')
 def login():
@@ -70,21 +80,35 @@ def categories(): return ok(rows(get_db().execute('SELECT * FROM categories WHER
 @api.get('/accounts')
 @login_required
 def accounts():
-    q=f'SELECT a.*, {balance_sql()} balance FROM accounts a WHERE user_id=? ORDER BY is_hidden,name'
+    q="SELECT a.*,0 balance FROM accounts a WHERE user_id=? AND name<>'Không xác định' COLLATE NOCASE ORDER BY is_hidden,name"
     return ok(rows(get_db().execute(q,(session['user_id'],))))
 @api.post('/accounts')
 @login_required
 def add_account():
     d=body(); name=str(d.get('name','')).strip()
     if not name:return fail('Tên tài khoản là bắt buộc')
-    cur=get_db().execute('INSERT INTO accounts(user_id,name,opening_balance) VALUES(?,?,?)',(session['user_id'],name,integer(d.get('opening_balance',0),'Số dư',False)));get_db().commit();return ok({'id':cur.lastrowid},201)
+    try:cur=get_db().execute('INSERT INTO accounts(user_id,name,opening_balance) VALUES(?,?,0)',(session['user_id'],name));get_db().commit();return ok({'id':cur.lastrowid},201)
+    except sqlite3.IntegrityError:return fail('Tên tài khoản đã tồn tại',409)
+
+@api.get('/payment-methods')
+@login_required
+def payment_methods():return accounts()
+
+@api.post('/payment-methods')
+@login_required
+def add_payment_method():return add_account()
+
+@api.put('/payment-methods/<int:i>')
+@login_required
+def edit_payment_method(i):return edit_account(i)
 @api.put('/accounts/<int:i>')
 @login_required
 def edit_account(i):
     if not owned('accounts',i):return fail('Không tìm thấy',404)
     d=body(); name=str(d.get('name','')).strip()
     if not name:return fail('Tên tài khoản là bắt buộc')
-    get_db().execute('UPDATE accounts SET name=?,is_hidden=? WHERE id=?',(name,1 if d.get('is_hidden') else 0,i));get_db().commit();return ok()
+    try:get_db().execute('UPDATE accounts SET name=?,is_hidden=? WHERE id=?',(name,1 if d.get('is_hidden') else 0,i));get_db().commit();return ok()
+    except sqlite3.IntegrityError:return fail('Tên tài khoản đã tồn tại',409)
 @api.get('/accounts/<int:i>/history')
 @login_required
 def account_history(i):
@@ -103,13 +127,13 @@ def transactions():
     page=max(1,integer(request.args.get('page',1),'Trang')); per_page=min(100,max(10,integer(request.args.get('per_page',25),'Số dòng'))); offset=(page-1)*per_page
     base=' FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE '+' AND '.join(where)
     total=get_db().execute('SELECT COUNT(*)'+base,args).fetchone()[0]
-    q='SELECT t.*,a.name account_name,c.name category_name'+base+' ORDER BY occurred_on DESC,t.id DESC LIMIT ? OFFSET ?'
+    q='SELECT t.*,a.name account_name,a.name payment_method_name,c.name category_name'+base+' ORDER BY occurred_on DESC,t.id DESC LIMIT ? OFFSET ?'
     return ok({'items':rows(get_db().execute(q,args+[per_page,offset])),'pagination':{'page':page,'per_page':per_page,'total':total,'pages':(total+per_page-1)//per_page}})
 def validate_tx(d):
     typ=d.get('type'); amount=integer(d.get('amount')); occurred=valid_date(d.get('occurred_on',date.today().isoformat()))
     if typ not in TYPES:raise ValueError('Loại giao dịch không hợp lệ')
     date.fromisoformat(occurred)
-    if not owned('accounts',integer(d.get('account_id'),'Tài khoản')):raise ValueError('Tài khoản không hợp lệ')
+    method=payment_method_id(d.get('payment_method_id',d.get('account_id')))
     cat=d.get('category_id') or None
     if cat:
         category=owned('categories',integer(cat,'Danh mục'))
@@ -118,22 +142,20 @@ def validate_tx(d):
         if expected and category['kind']!=expected:raise ValueError('Danh mục không phù hợp với loại giao dịch')
     elif typ in ('income','expense'): raise ValueError('Vui lòng chọn danh mục')
     sign=-1 if str(d.get('adjustment_sign'))=='-1' else 1
-    return typ,amount,occurred,cat,sign
+    return typ,amount,occurred,cat,sign,method
 @api.post('/transactions')
 @login_required
 def add_tx():
-    d=body(); typ,amount,day,cat,sign=validate_tx(d); account=int(d['account_id']); ensure_sufficient_balance(account,transaction_effect(typ,amount,sign))
-    cur=get_db().execute('INSERT INTO transactions(user_id,account_id,category_id,type,amount,adjustment_sign,note,occurred_on) VALUES(?,?,?,?,?,?,?,?)',(session['user_id'],account,cat,typ,amount,sign,clean_text(d.get('note'),'Ghi chú'),day));get_db().commit();return ok({'id':cur.lastrowid},201)
+    d=body(); typ,amount,day,cat,sign,method=validate_tx(d)
+    cur=get_db().execute('INSERT INTO transactions(user_id,account_id,category_id,type,amount,adjustment_sign,note,occurred_on) VALUES(?,?,?,?,?,?,?,?)',(session['user_id'],method,cat,typ,amount,sign,clean_text(d.get('note'),'Ghi chú'),day));get_db().commit();return ok({'id':cur.lastrowid},201)
 @api.put('/transactions/<int:i>')
 @login_required
 def edit_tx(i):
     old=owned('transactions',i)
     if not old:return fail('Không tìm thấy',404)
     if old['debt_id']:return fail('Hãy quản lý giao dịch này từ khoản nợ')
-    d=body(); typ,amount,day,cat,sign=validate_tx(d); account=int(d['account_id']); old_effect=transaction_effect(old['type'],old['amount'],old['adjustment_sign']) if old['account_id']==account else 0
-    if old['account_id']!=account: ensure_sufficient_balance(old['account_id'],-transaction_effect(old['type'],old['amount'],old['adjustment_sign']))
-    ensure_sufficient_balance(account,transaction_effect(typ,amount,sign),old_effect)
-    get_db().execute('UPDATE transactions SET account_id=?,category_id=?,type=?,amount=?,adjustment_sign=?,note=?,occurred_on=? WHERE id=?',(account,cat,typ,amount,sign,clean_text(d.get('note'),'Ghi chú'),day,i));get_db().commit();return ok()
+    d=body(); typ,amount,day,cat,sign,method=validate_tx(d)
+    get_db().execute('UPDATE transactions SET account_id=?,category_id=?,type=?,amount=?,adjustment_sign=?,note=?,occurred_on=? WHERE id=?',(method,cat,typ,amount,sign,clean_text(d.get('note'),'Ghi chú'),day,i));get_db().commit();return ok()
 @api.delete('/transactions/<int:i>')
 @login_required
 def delete_tx(i):
@@ -204,11 +226,9 @@ def debt_payment_history(i):
 def pay_debt(i):
     debt=owned('debts',i); d=body()
     if not debt:return fail('Không tìm thấy',404)
-    amount=integer(d.get('amount')); account=integer(d.get('account_id')); day=d.get('paid_on',date.today().isoformat())
+    amount=integer(d.get('amount')); account=payment_method_id(d.get('payment_method_id',d.get('account_id'))); day=d.get('paid_on',date.today().isoformat())
     if amount>debt['remaining_amount']:return fail('Số tiền vượt quá dư nợ')
-    if not owned('accounts',account):return fail('Tài khoản không hợp lệ')
-    valid_date(day,'Ngày trả'); db=get_db(); bal=account_balance(account)
-    if bal<amount:return fail('Số dư không đủ')
+    valid_date(day,'Ngày trả'); db=get_db()
     try:
         db.execute('BEGIN'); cur=db.execute("INSERT INTO transactions(user_id,account_id,type,amount,note,occurred_on,debt_id) VALUES(?,?,?,?,?,?,?)",(session['user_id'],account,'debt_payment',amount,'Trả nợ: '+debt['name'],day,i));db.execute('INSERT INTO debt_payments(user_id,debt_id,account_id,transaction_id,amount,paid_on) VALUES(?,?,?,?,?,?)',(session['user_id'],i,account,cur.lastrowid,amount,day));remain=debt['remaining_amount']-amount;db.execute('UPDATE debts SET remaining_amount=?,status=? WHERE id=?',(remain,'paid' if remain==0 else 'active',i));db.commit()
     except:db.rollback();raise
@@ -222,12 +242,12 @@ def dashboard():
     daily=rows(db.execute("SELECT occurred_on day,SUM(CASE WHEN type='income' THEN amount ELSE 0 END) income,SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=? GROUP BY occurred_on ORDER BY occurred_on",(uid,month)))
     bycat=rows(db.execute("SELECT COALESCE(c.name,'Khác') label,SUM(t.amount) value,t.type FROM transactions t LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? AND substr(t.occurred_on,1,7)=? AND t.type IN('income','expense') GROUP BY t.type,c.name",(uid,month)))
     debt_progress=rows(db.execute("SELECT name label,total_amount total,remaining_amount remaining,(total_amount-remaining_amount) paid FROM debts WHERE user_id=? ORDER BY status,due_date LIMIT 10",(uid,)))
-    accts=rows(db.execute(f'SELECT a.id,a.name,{balance_sql()} balance FROM accounts a WHERE user_id=? AND is_hidden=0',(uid,)))
-    recent=rows(db.execute('SELECT t.*,a.name account_name,c.name category_name FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? ORDER BY occurred_on DESC,t.id DESC LIMIT 8',(uid,)))
+    methods=rows(db.execute("SELECT a.name label,COUNT(t.id) count,COALESCE(SUM(CASE WHEN t.type IN('expense','debt_payment') THEN t.amount ELSE 0 END),0) value FROM accounts a LEFT JOIN transactions t ON t.account_id=a.id AND substr(t.occurred_on,1,7)=? WHERE a.user_id=? AND a.name<>'Không xác định' COLLATE NOCASE GROUP BY a.id,a.name ORDER BY value DESC",(month,uid)))
+    recent=rows(db.execute('SELECT t.*,a.name account_name,a.name payment_method_name,c.name category_name FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? ORDER BY occurred_on DESC,t.id DESC LIMIT 8',(uid,)))
     due=db.execute("SELECT COALESCE(SUM(CASE WHEN due_date IS NULL OR substr(due_date,1,7)<=? THEN MIN(monthly_due,remaining_amount) ELSE 0 END),0) due,COALESCE(SUM(remaining_amount),0) remaining FROM debts WHERE user_id=? AND status='active'",(month,uid)).fetchone()
     previous=(datetime.strptime(month+'-01','%Y-%m-%d').replace(day=1)); previous_month=(previous.replace(day=1)-__import__('datetime').timedelta(days=1)).strftime('%Y-%m')
     prev=db.execute("SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount END),0) income,COALESCE(SUM(CASE WHEN type='expense' THEN amount END),0) expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=?",(uid,previous_month)).fetchone()
-    return ok({'month':month,'summary':dict(sums)|dict(due),'previous':dict(prev),'accounts':accts,'recent':recent,'daily':daily,'categories':bycat,'debt_progress':debt_progress})
+    return ok({'month':month,'summary':dict(sums)|dict(due),'previous':dict(prev),'payment_methods':methods,'recent':recent,'daily':daily,'categories':bycat,'debt_progress':debt_progress})
 
 @api.get('/admin/users')
 @root_required

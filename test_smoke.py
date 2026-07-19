@@ -1,7 +1,7 @@
 import tempfile, unittest
 from pathlib import Path
 from app import create_app
-from database import init_db
+from database import init_db, connect, merge_duplicate_accounts
 
 class SmokeTest(unittest.TestCase):
     def setUp(self):
@@ -20,9 +20,11 @@ class SmokeTest(unittest.TestCase):
         dash=self.c.get('/api/dashboard?month=2026-07').get_json()['data']; self.assertEqual(dash['summary']['income'],250000)
         debt=self.c.post('/api/debts',json={'name':'Khoản thử','total_amount':100000,'monthly_due':50000},headers=h).get_json()['data']['id']
         self.assertTrue(self.c.post(f'/api/debts/{debt}/payments',json={'account_id':accounts[0]['id'],'amount':50000,'paid_on':'2026-07-19'},headers=h).get_json()['success'])
-        balances=self.c.get('/api/accounts').get_json()['data']; self.assertEqual(next(x for x in balances if x['id']==accounts[0]['id'])['balance'],200000)
+        methods=self.c.get('/api/payment-methods').get_json()['data']; self.assertEqual(len(methods),3)
         too_much={**tx,'type':'expense','category_id':next(x for x in cats if x['kind']=='expense')['id'],'amount':300000}
-        self.assertEqual(self.c.post('/api/transactions',json=too_much,headers=h).status_code,400)
+        self.assertEqual(self.c.post('/api/transactions',json=too_much,headers=h).status_code,201)
+        optional={'type':'expense','category_id':next(x for x in cats if x['kind']=='expense')['id'],'amount':10000,'occurred_on':'2026-07-19','note':'Không chọn phương thức'}
+        self.assertEqual(self.c.post('/api/transactions',json=optional,headers=h).status_code,201)
         self.assertTrue(self.c.get(f"/api/accounts/{accounts[0]['id']}/history").get_json()['success'])
         self.assertEqual(len(self.c.get(f'/api/debts/{debt}/payments').get_json()['data']),1)
 
@@ -34,7 +36,17 @@ class SmokeTest(unittest.TestCase):
         self.c.post('/api/auth/logout',headers=h)
         self.assertEqual(self.c.post('/api/auth/register',json={'email':'user@example.com','password':'Password123'}).status_code,201)
         login=self.c.post('/api/auth/login',json={'email':'user@example.com','password':'Password123'}).get_json();db_headers={'X-CSRF-Token':login['data']['csrf_token']}
-        self.assertEqual(len(self.c.get('/api/accounts').get_json()['data']),3)
+        self.assertEqual(len(self.c.get('/api/payment-methods').get_json()['data']),3)
         self.assertEqual(self.c.get('/api/admin/users').status_code,403)
+
+    def test_duplicate_accounts_are_merged(self):
+        with self.app.app_context():
+            db=connect(self.app.config['DATABASE']);db.execute('DROP INDEX uq_accounts_user_name');uid=db.execute('SELECT id FROM users WHERE role="root"').fetchone()['id'];keep=db.execute('SELECT id FROM accounts WHERE user_id=? AND name="MoMo"',(uid,)).fetchone()['id'];dup=db.execute('INSERT INTO accounts(user_id,name,opening_balance) VALUES(?,?,?)',(uid,'momo',12000)).lastrowid;db.execute("INSERT INTO transactions(user_id,account_id,type,amount,occurred_on) VALUES(?,?,?,?,?)",(uid,dup,'income',3000,'2026-07-01'));db.commit();merge_duplicate_accounts(db);db.commit();count=db.execute('SELECT COUNT(*) FROM accounts WHERE user_id=? AND lower(name)="momo"',(uid,)).fetchone()[0];opening=db.execute('SELECT opening_balance FROM accounts WHERE id=?',(keep,)).fetchone()[0];tx_account=db.execute('SELECT account_id FROM transactions WHERE note="" AND amount=3000').fetchone()[0];db.close();self.assertEqual(count,1);self.assertEqual(opening,12000);self.assertEqual(tx_account,keep)
+
+    def test_seeding_is_idempotent(self):
+        init_db(self.app);init_db(self.app)
+        login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json();headers={'X-CSRF-Token':login['data']['csrf_token']}
+        self.c.post('/api/auth/change-password',json={'current_password':'Minh1111','new_password':'MatKhauMoi123'},headers=headers)
+        self.assertEqual(len(self.c.get('/api/accounts').get_json()['data']),3)
 
 if __name__=='__main__': unittest.main()

@@ -25,10 +25,12 @@ Database tự khởi tạo và không bị ghi đè. SQLite bật foreign keys, 
 
 - Dashboard theo tháng với bốn biểu đồ thu/chi, nguồn thu, danh mục chi và tiến độ trả nợ.
 - Giao dịch có tìm kiếm, bộ lọc, phân trang, kiểm tra danh mục và chống số dư âm.
-- Tài khoản có sửa, ẩn, chuyển tiền và xem lịch sử.
+- Phương thức thanh toán là nhãn tùy chọn (Tiền mặt, Ngân hàng, MoMo...), không quản lý số dư.
 - Khoản nợ có sửa, xóa an toàn, thanh toán một phần và lịch sử thanh toán.
 - Quản trị đăng ký, khóa/mở khóa, xóa người dùng và tải backup.
-- Frontend tách lớp gọi API, tiện ích UI và điều phối màn hình trong `static/js`.
+- Frontend tách lớp gọi API, tiện ích UI và từng màn hình trong `static/js/views`.
+
+Ứng dụng vận hành như một sổ thu–chi: thu nhập và chi tiêu là dữ liệu chính. Phương thức thanh toán chỉ phục vụ lọc, tìm kiếm và đối chiếu; bỏ trống phương thức vẫn hợp lệ. Chuyển tiền giữa ví không được tính vì hệ thống không theo dõi số dư thực tế của ví.
 
 ## Kiểm thử
 

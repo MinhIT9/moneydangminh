@@ -32,14 +32,31 @@ def close_db(_=None):
     if db: db.close()
 
 def seed_user(db, user_id):
-    db.executemany('INSERT OR IGNORE INTO accounts(user_id,name) VALUES(?,?)',[(user_id,x) for x in ('Tiền mặt','Ngân hàng','MoMo')])
+    methods=('Tiền mặt','Ngân hàng','MoMo','Không xác định')
+    db.executemany('INSERT INTO accounts(user_id,name,is_hidden) SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE user_id=? AND name=? COLLATE NOCASE)',[(user_id,x,1 if x=='Không xác định' else 0,user_id,x) for x in methods])
     db.executemany('INSERT OR IGNORE INTO categories(user_id,name,kind) VALUES(?,?,?)',[(user_id,x,'income') for x in INCOMES]+[(user_id,x,'expense') for x in EXPENSES])
+
+def merge_duplicate_accounts(db):
+    """Merge exact duplicate account names without losing balances or references."""
+    groups=db.execute('SELECT user_id,lower(trim(name)) normalized,MIN(id) keep_id FROM accounts GROUP BY user_id,lower(trim(name)) HAVING COUNT(*)>1').fetchall()
+    for group in groups:
+        duplicates=db.execute('SELECT id,opening_balance FROM accounts WHERE user_id=? AND lower(trim(name))=? AND id<>?',(group['user_id'],group['normalized'],group['keep_id'])).fetchall()
+        for duplicate in duplicates:
+            duplicate_id=duplicate['id']; keep_id=group['keep_id']
+            # Transfers between two duplicate representations cancel out after merging.
+            db.execute('DELETE FROM transfers WHERE user_id=? AND ((from_account_id=? AND to_account_id=?) OR (from_account_id=? AND to_account_id=?))',(group['user_id'],duplicate_id,keep_id,keep_id,duplicate_id))
+            db.execute('UPDATE transactions SET account_id=? WHERE account_id=?',(keep_id,duplicate_id))
+            db.execute('UPDATE debt_payments SET account_id=? WHERE account_id=?',(keep_id,duplicate_id))
+            db.execute('UPDATE transfers SET from_account_id=? WHERE from_account_id=?',(keep_id,duplicate_id))
+            db.execute('UPDATE transfers SET to_account_id=? WHERE to_account_id=?',(keep_id,duplicate_id))
+            db.execute('UPDATE accounts SET opening_balance=opening_balance+? WHERE id=?',(duplicate['opening_balance'],keep_id))
+            db.execute('DELETE FROM accounts WHERE id=?',(duplicate_id,))
+    db.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_user_name ON accounts(user_id,name COLLATE NOCASE)')
 
 def init_db(app):
     path=Path(app.config['DATABASE']); path.parent.mkdir(parents=True,exist_ok=True)
-    db=connect(path); db.executescript(SCHEMA)
+    db=connect(path); db.executescript(SCHEMA); merge_duplicate_accounts(db)
     db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('registration_enabled','0')")
     db.execute("INSERT OR IGNORE INTO users(email,password_hash,role,must_change_password) VALUES(?,?,?,1)",('root@dangminh.com',generate_password_hash('Minh1111'),'root'))
     root=db.execute("SELECT id FROM users WHERE email=?",('root@dangminh.com',)).fetchone(); seed_user(db,root['id'])
     db.commit(); db.close()
-
