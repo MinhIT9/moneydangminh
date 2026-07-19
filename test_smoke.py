@@ -54,10 +54,20 @@ class SmokeTest(unittest.TestCase):
         from datetime import datetime
         self.assertEqual(vn_today(),datetime.now(VN_TZ).date())
 
+    def test_delete_category_unclassifies_transactions(self):
+        login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json();headers={'X-CSRF-Token':login['data']['csrf_token']}
+        self.c.post('/api/auth/change-password',json={'current_password':'Minh1111','new_password':'MatKhauMoi123'},headers=headers)
+        category=self.c.post('/api/categories',json={'name':'Danh mục sẽ xóa','kind':'income'},headers=headers).get_json()['data']['id']
+        transaction=self.c.post('/api/transactions',json={'type':'income','category_id':category,'amount':50000,'occurred_on':'2026-07-20'},headers=headers).get_json()['data']['id']
+        self.assertEqual(self.c.delete(f'/api/categories/{category}',json={},headers=headers).status_code,409)
+        result=self.c.delete(f'/api/categories/{category}',json={'confirm':True},headers=headers).get_json();self.assertEqual(result['data']['unclassified_transactions'],1)
+        with self.app.app_context():
+            db=connect(self.app.config['DATABASE']);row=db.execute('SELECT category_id FROM transactions WHERE id=?',(transaction,)).fetchone();db.close();self.assertIsNone(row['category_id'])
+
     def test_spa_routes_require_login_and_render(self):
         self.assertEqual(self.c.get('/debts').status_code,302)
         login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json()
         for path in ('/dashboard','/transactions','/methods','/debts','/settings'):
-            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=7',response.data)
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=8',response.data)
 
 if __name__=='__main__': unittest.main()

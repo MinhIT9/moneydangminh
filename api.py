@@ -79,7 +79,38 @@ def change_password():
 
 @api.get('/categories')
 @login_required
-def categories(): return ok(rows(get_db().execute('SELECT * FROM categories WHERE user_id=? ORDER BY kind,name',(session['user_id'],))))
+def categories():
+    return ok(rows(get_db().execute('SELECT c.*,COUNT(t.id) transaction_count FROM categories c LEFT JOIN transactions t ON t.category_id=c.id WHERE c.user_id=? GROUP BY c.id ORDER BY c.kind,c.name',(session['user_id'],))))
+
+@api.post('/categories')
+@login_required
+def add_category():
+    d=body();name=clean_text(d.get('name'),'Tên danh mục',100,True);kind=d.get('kind')
+    if kind not in ('income','expense'):raise ValueError('Loại danh mục không hợp lệ')
+    try:
+        cur=get_db().execute('INSERT INTO categories(user_id,name,kind) VALUES(?,?,?)',(session['user_id'],name,kind));get_db().commit();return ok({'id':cur.lastrowid},201)
+    except sqlite3.IntegrityError:return fail('Danh mục này đã tồn tại',409)
+
+@api.put('/categories/<int:i>')
+@login_required
+def edit_category(i):
+    category=owned('categories',i)
+    if not category:return fail('Không tìm thấy danh mục',404)
+    name=clean_text(body().get('name'),'Tên danh mục',100,True)
+    try:get_db().execute('UPDATE categories SET name=? WHERE id=?',(name,i));get_db().commit();return ok()
+    except sqlite3.IntegrityError:return fail('Danh mục này đã tồn tại',409)
+
+@api.delete('/categories/<int:i>')
+@login_required
+def delete_category(i):
+    category=owned('categories',i)
+    if not category:return fail('Không tìm thấy danh mục',404)
+    db=get_db();count=db.execute('SELECT COUNT(*) FROM transactions WHERE user_id=? AND category_id=?',(session['user_id'],i)).fetchone()[0]
+    if count and body().get('confirm') is not True:return fail(f'Danh mục đang được dùng bởi {count} giao dịch. Cần xác nhận xóa.',409)
+    try:
+        db.execute('BEGIN');db.execute('UPDATE transactions SET category_id=NULL WHERE user_id=? AND category_id=?',(session['user_id'],i));db.execute('DELETE FROM categories WHERE id=? AND user_id=?',(i,session['user_id']));db.commit()
+    except:db.rollback();raise
+    return ok({'unclassified_transactions':count})
 
 @api.get('/accounts')
 @login_required
@@ -131,7 +162,7 @@ def transactions():
     page=max(1,integer(request.args.get('page',1),'Trang')); per_page=min(100,max(10,integer(request.args.get('per_page',25),'Số dòng'))); offset=(page-1)*per_page
     base=' FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE '+' AND '.join(where)
     total=get_db().execute('SELECT COUNT(*)'+base,args).fetchone()[0]
-    q='SELECT t.*,a.name account_name,a.name payment_method_name,c.name category_name'+base+' ORDER BY occurred_on DESC,t.id DESC LIMIT ? OFFSET ?'
+    q="SELECT t.*,a.name account_name,a.name payment_method_name,COALESCE(c.name,'Chưa phân loại') category_name"+base+' ORDER BY occurred_on DESC,t.id DESC LIMIT ? OFFSET ?'
     return ok({'items':rows(get_db().execute(q,args+[per_page,offset])),'pagination':{'page':page,'per_page':per_page,'total':total,'pages':(total+per_page-1)//per_page}})
 def validate_tx(d):
     typ=d.get('type'); amount=integer(d.get('amount')); occurred=valid_date(d.get('occurred_on',vn_today().isoformat()))
@@ -244,10 +275,10 @@ def dashboard():
     month=valid_month(request.args.get('month',vn_today().strftime('%Y-%m')));db=get_db();uid=session['user_id']; today=vn_today().isoformat()
     sums=db.execute("SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount END),0) income,COALESCE(SUM(CASE WHEN type='expense' THEN amount END),0) expense,COALESCE(SUM(CASE WHEN type='debt_payment' THEN amount END),0) paid,COALESCE(SUM(CASE WHEN type='income' AND occurred_on=? THEN amount END),0) today_income,COALESCE(SUM(CASE WHEN type='expense' AND occurred_on=? THEN amount END),0) today_expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=?",(today,today,uid,month)).fetchone()
     daily=rows(db.execute("SELECT occurred_on day,SUM(CASE WHEN type='income' THEN amount ELSE 0 END) income,SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=? GROUP BY occurred_on ORDER BY occurred_on",(uid,month)))
-    bycat=rows(db.execute("SELECT COALESCE(c.name,'Khác') label,SUM(t.amount) value,t.type FROM transactions t LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? AND substr(t.occurred_on,1,7)=? AND t.type IN('income','expense') GROUP BY t.type,c.name",(uid,month)))
+    bycat=rows(db.execute("SELECT COALESCE(c.name,'Chưa phân loại') label,SUM(t.amount) value,t.type FROM transactions t LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? AND substr(t.occurred_on,1,7)=? AND t.type IN('income','expense') GROUP BY t.type,c.name",(uid,month)))
     debt_progress=rows(db.execute("SELECT name label,total_amount total,remaining_amount remaining,(total_amount-remaining_amount) paid FROM debts WHERE user_id=? ORDER BY status,due_date LIMIT 10",(uid,)))
     methods=rows(db.execute("SELECT a.name label,COUNT(t.id) count,COALESCE(SUM(CASE WHEN t.type IN('expense','debt_payment') THEN t.amount ELSE 0 END),0) value FROM accounts a LEFT JOIN transactions t ON t.account_id=a.id AND substr(t.occurred_on,1,7)=? WHERE a.user_id=? AND a.name<>'Không xác định' COLLATE NOCASE GROUP BY a.id,a.name ORDER BY value DESC",(month,uid)))
-    recent=rows(db.execute('SELECT t.*,a.name account_name,a.name payment_method_name,c.name category_name FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? ORDER BY occurred_on DESC,t.id DESC LIMIT 8',(uid,)))
+    recent=rows(db.execute("SELECT t.*,a.name account_name,a.name payment_method_name,COALESCE(c.name,'Chưa phân loại') category_name FROM transactions t JOIN accounts a ON a.id=t.account_id LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? ORDER BY occurred_on DESC,t.id DESC LIMIT 8",(uid,)))
     due=db.execute("SELECT COALESCE(SUM(CASE WHEN due_date IS NULL OR substr(due_date,1,7)<=? THEN MIN(monthly_due,remaining_amount) ELSE 0 END),0) due,COALESCE(SUM(remaining_amount),0) remaining FROM debts WHERE user_id=? AND status='active'",(month,uid)).fetchone()
     previous=(datetime.strptime(month+'-01','%Y-%m-%d').replace(day=1)); previous_month=(previous.replace(day=1)-__import__('datetime').timedelta(days=1)).strftime('%Y-%m')
     prev=db.execute("SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount END),0) income,COALESCE(SUM(CASE WHEN type='expense' THEN amount END),0) expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=?",(uid,previous_month)).fetchone()
