@@ -54,4 +54,10 @@ class SmokeTest(unittest.TestCase):
         from datetime import datetime
         self.assertEqual(vn_today(),datetime.now(VN_TZ).date())
 
+    def test_spa_routes_require_login_and_render(self):
+        self.assertEqual(self.c.get('/debts').status_code,302)
+        login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json()
+        for path in ('/dashboard','/transactions','/methods','/debts','/settings'):
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=7',response.data)
+
 if __name__=='__main__': unittest.main()
