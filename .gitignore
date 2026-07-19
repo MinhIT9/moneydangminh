@@ -1,0 +1,57 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+instance/
+
+# SQLite runtime data (including WAL and shared-memory files)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
+data/*.sqlite
+data/*.sqlite3
+!data/.gitkeep
+
+# Generated backups
+backups/*.db
+backups/*.sqlite*
+!backups/.gitkeep
+
+# Flask and application runtime files
+flask_session/
+*.log
+logs/
+
+# Packaging and build artifacts
+build/
+dist/
+*.egg-info/
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,22 @@
+# Minh Finance
+
+Ứng dụng quản lý thu chi cá nhân bằng Flask và SQLite, giao diện SPA-like bằng Fetch API.
+
+## Chạy development
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python app.py
+```
+
+Mở `http://127.0.0.1:5000/login`. Tài khoản khởi tạo: `root@dangminh.com`, mật khẩu ban đầu `Minh1111`. Hệ thống yêu cầu đổi mật khẩu; không dùng mật khẩu này cho production.
+
+Development dùng `data/finance_dev.db`. Đặt `SECRET_KEY` bằng chuỗi ngẫu nhiên trong môi trường thực tế.
+
+## Chạy production
+
+Nhấp `start_prod.bat`. Script tự tạo `.venv`, cài thư viện, đặt `APP_ENV=production`, dùng `data/finance_prod.db` và chạy Waitress tại `127.0.0.1:5000`. Trước khi vận hành, đặt biến `SECRET_KEY` dài và ngẫu nhiên; đặt `HTTPS=1` khi reverse proxy HTTPS (ví dụ Caddy).
+
+Database tự khởi tạo và không bị ghi đè. SQLite bật foreign keys, WAL và busy timeout. Root tải backup nhất quán qua SQLite Backup API trong Cài đặt.

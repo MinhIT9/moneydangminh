@@ -1,0 +1,96 @@
+
+# DEV 
+
+
+===============
+# PROD 
+
+# 1. Thiết lập biến môi trường phiên làm việc để Flask biết là Prod
+$env:FLASK_CONFIG = "production"
+set FLASK_CONFIG=production
+ 
+flask db init
+# 2. Đánh dấu database Prod đã ở phiên bản mới nhất
+flask db stamp head
+# 2.1 Thay vì dùng migrate (tự động dò), ta dùng lệnh revision (tạo thủ công).
+flask db revision -m "Force Init Production"
+# 3. Tạo file migration mới (nếu có thay đổi model)
+flask db upgrade
+flask db migrate -m "Prod Init V33" 
+# 4. Cập nhật database Prod lên phiên bản mới nhất
+flask db upgrade
+
+flask db revision -m "Add system_metrics table"
+
+flask db upgrade -d prod_migrations
+===============
+# --- RESET DB DEV (V33.6+) ---
+
+# 1. Đảm bảo tắt tiến trình python đang chạy
+Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
+
+# 2. Xóa sạch file cũ
+Remove-Item "instance/moneytask.sqlite3" -Force -ErrorAction SilentlyContinue
+Remove-Item "migrations" -Recurse -Force -ErrorAction SilentlyContinue
+
+# 3. Thiết lập biến môi trường (QUAN TRỌNG)
+$env:FLASK_APP = "app"
+$env:FLASK_CONFIG = "development"
+
+# 4. Tạo lại DB từ đầu
+python -m flask db init
+python -m flask db migrate -m "Dev Init V33"
+python -m flask db upgrade
+
+# 5. Nạp dữ liệu (Thứ tự chuẩn)
+python seed_create_admin.py
+python seed_checkin.py
+python seed_tasks.py
+python seed_bonus.py
+
+# 6. Chạy server
+python app.py
+
+
+$env:FLASK_APP = "app"
+$env:FLASK_CONFIG = "production"
+python app.py
+
+
+python seed_fake_history.py
+
+
+py -m venv venv
+py -3.11 -m venv venv
+
+.\venv\Scripts\activate
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+
+
+py app.py
+
+ngrok http 5000 --url https://fairly-clean-wildcat.ngrok-free.app
+
+pip install -r requirements.txt
+pip freeze > requirements.txt
+
+
+# Thao tác CSDL MariaDB cho Prod
+; -- 1. Tạo user mới (chỉ cho phép kết nối từ localhost để bảo mật)
+CREATE USER 'moneytask_user'@'127.0.0.1' IDENTIFIED BY 'Mat_Khau_Sieu_Manh_Cua_Ban_123!';
+; -- Hoặc nếu app kết nối qua 'localhost' thì tạo thêm dòng này cho chắc:
+CREATE USER 'moneytask_user'@'localhost' IDENTIFIED BY 'Mat_Khau_Sieu_Manh_Cua_Ban_123!';
+
+; -- 2. Cấp toàn quyền trên database PRODUCTION
+GRANT ALL PRIVILEGES ON moneytask_prod.* TO 'moneytask_user'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON moneytask_prod.* TO 'moneytask_user'@'localhost';
+; -- (Tùy chọn) Nếu bạn muốn user này dùng được cả bản Dev
+GRANT ALL PRIVILEGES ON moneytask_dev.* TO 'moneytask_user'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON moneytask_dev.* TO 'moneytask_user'@'localhost';
+
+; -- 3. Lưu thay đổi
+FLUSH PRIVILEGES;
+
+# 4. Kiểm tra user đã tạo
+SELECT user, host FROM mysql.user WHERE user='moneytask_user';
