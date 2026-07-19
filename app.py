@@ -28,7 +28,8 @@ def create_app():
     def not_found(_):return fail('Không tìm thấy',404) if request.path.startswith('/api/') else ('Không tìm thấy',404)
     @app.after_request
     def cache(res):
-        if request.path.startswith('/static/'):res.headers['Cache-Control']='public,max-age=604800'
+        if request.path.startswith('/static/'):
+            res.headers['Cache-Control']='no-cache' if app.debug else 'public,max-age=86400'
         res.headers['X-Content-Type-Options']='nosniff';res.headers['Referrer-Policy']='strict-origin-when-cross-origin';res.headers['X-Frame-Options']='DENY'
         return res
     return app
