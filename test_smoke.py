@@ -28,6 +28,9 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(self.c.post('/api/transactions',json=optional,headers=h).status_code,201)
         self.assertTrue(self.c.get(f"/api/accounts/{accounts[0]['id']}/history").get_json()['success'])
         self.assertEqual(len(self.c.get(f'/api/debts/{debt}/payments').get_json()['data']),1)
+        self.assertEqual(self.c.delete(f'/api/debts/{debt}',json={},headers=h).status_code,409)
+        self.assertTrue(self.c.delete(f'/api/debts/{debt}',json={'confirm':True},headers=h).get_json()['success'])
+        ledger=self.c.get('/api/transactions?month=2026-07').get_json()['data']['items'];self.assertTrue(any(x['type']=='debt_payment' and x['debt_id'] is None for x in ledger))
 
     def test_user_isolation(self):
         db_headers={}
@@ -68,6 +71,6 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(self.c.get('/debts').status_code,302)
         login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json()
         for path in ('/dashboard','/transactions','/methods','/debts','/settings'):
-            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=8',response.data)
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=9',response.data)
 
 if __name__=='__main__': unittest.main()

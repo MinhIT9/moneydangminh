@@ -224,7 +224,7 @@ def delete_transfer(i):
 @login_required
 def debts():
     db=get_db()
-    if request.method=='GET':return ok(rows(db.execute('SELECT * FROM debts WHERE user_id=? ORDER BY status,due_date',(session['user_id'],))))
+    if request.method=='GET':return ok(rows(db.execute('SELECT d.*,(SELECT COUNT(*) FROM debt_payments p WHERE p.debt_id=d.id) payment_count FROM debts d WHERE d.user_id=? ORDER BY d.status,d.due_date',(session['user_id'],))))
     d=body();total=integer(d.get('total_amount')); monthly=integer(d.get('monthly_due',0),'Khoản trả tháng',False); due=d.get('due_date') or None
     if due:valid_date(due,'Ngày đến hạn')
     priority=d.get('priority','medium')
@@ -249,7 +249,7 @@ def delete_debt(i):
     debt=owned('debts',i)
     if not debt:return fail('Không tìm thấy',404)
     count=get_db().execute('SELECT COUNT(*) FROM debt_payments WHERE debt_id=?',(i,)).fetchone()[0]
-    if count:return fail('Không thể xóa khoản nợ đã có lịch sử thanh toán')
+    if count and body().get('confirm') is not True:return fail(f'Khoản nợ có {count} lần thanh toán. Cần xác nhận xóa.',409)
     get_db().execute('DELETE FROM debts WHERE id=?',(i,));get_db().commit();return ok()
 @api.get('/debts/<int:i>/payments')
 @login_required
