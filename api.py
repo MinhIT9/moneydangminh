@@ -1,5 +1,6 @@
 import re, sqlite3, time
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from flask import Blueprint, request, session, current_app, send_file
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, seed_user
@@ -10,6 +11,9 @@ api=Blueprint('api',__name__,url_prefix='/api')
 EMAIL=re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 TYPES={'income','expense','debt_payment','loan','adjustment'}
 LOGIN_ATTEMPTS={}
+VN_TZ=ZoneInfo('Asia/Ho_Chi_Minh')
+def vn_now():return datetime.now(VN_TZ)
+def vn_today():return vn_now().date()
 def body(): return request.get_json(silent=True) or {}
 def integer(v,name='Số tiền',positive=True):
     if isinstance(v,bool): raise ValueError(f'{name} không hợp lệ')
@@ -130,7 +134,7 @@ def transactions():
     q='SELECT t.*,a.name account_name,a.name payment_method_name,c.name category_name'+base+' ORDER BY occurred_on DESC,t.id DESC LIMIT ? OFFSET ?'
     return ok({'items':rows(get_db().execute(q,args+[per_page,offset])),'pagination':{'page':page,'per_page':per_page,'total':total,'pages':(total+per_page-1)//per_page}})
 def validate_tx(d):
-    typ=d.get('type'); amount=integer(d.get('amount')); occurred=valid_date(d.get('occurred_on',date.today().isoformat()))
+    typ=d.get('type'); amount=integer(d.get('amount')); occurred=valid_date(d.get('occurred_on',vn_today().isoformat()))
     if typ not in TYPES:raise ValueError('Loại giao dịch không hợp lệ')
     date.fromisoformat(occurred)
     method=payment_method_id(d.get('payment_method_id',d.get('account_id')))
@@ -169,10 +173,10 @@ def delete_tx(i):
 def transfer():
     d=body(); fr=integer(d.get('from_account_id'));to=integer(d.get('to_account_id'));amount=integer(d.get('amount'))
     if fr==to or not owned('accounts',fr) or not owned('accounts',to):return fail('Tài khoản chuyển không hợp lệ')
-    valid_date(d.get('occurred_on',date.today().isoformat()))
+    valid_date(d.get('occurred_on',vn_today().isoformat()))
     bal=account_balance(fr)
     if bal<amount:return fail('Số dư không đủ')
-    cur=get_db().execute('INSERT INTO transfers(user_id,from_account_id,to_account_id,amount,note,occurred_on) VALUES(?,?,?,?,?,?)',(session['user_id'],fr,to,amount,clean_text(d.get('note'),'Ghi chú'),d.get('occurred_on',date.today().isoformat())));get_db().commit();return ok({'id':cur.lastrowid},201)
+    cur=get_db().execute('INSERT INTO transfers(user_id,from_account_id,to_account_id,amount,note,occurred_on) VALUES(?,?,?,?,?,?)',(session['user_id'],fr,to,amount,clean_text(d.get('note'),'Ghi chú'),d.get('occurred_on',vn_today().isoformat())));get_db().commit();return ok({'id':cur.lastrowid},201)
 @api.get('/transfers')
 @login_required
 def transfers():
@@ -226,7 +230,7 @@ def debt_payment_history(i):
 def pay_debt(i):
     debt=owned('debts',i); d=body()
     if not debt:return fail('Không tìm thấy',404)
-    amount=integer(d.get('amount')); account=payment_method_id(d.get('payment_method_id',d.get('account_id'))); day=d.get('paid_on',date.today().isoformat())
+    amount=integer(d.get('amount')); account=payment_method_id(d.get('payment_method_id',d.get('account_id'))); day=d.get('paid_on',vn_today().isoformat())
     if amount>debt['remaining_amount']:return fail('Số tiền vượt quá dư nợ')
     valid_date(day,'Ngày trả'); db=get_db()
     try:
@@ -237,7 +241,7 @@ def pay_debt(i):
 @api.get('/dashboard')
 @login_required
 def dashboard():
-    month=valid_month(request.args.get('month',date.today().strftime('%Y-%m')));db=get_db();uid=session['user_id']; today=date.today().isoformat()
+    month=valid_month(request.args.get('month',vn_today().strftime('%Y-%m')));db=get_db();uid=session['user_id']; today=vn_today().isoformat()
     sums=db.execute("SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount END),0) income,COALESCE(SUM(CASE WHEN type='expense' THEN amount END),0) expense,COALESCE(SUM(CASE WHEN type='debt_payment' THEN amount END),0) paid,COALESCE(SUM(CASE WHEN type='income' AND occurred_on=? THEN amount END),0) today_income,COALESCE(SUM(CASE WHEN type='expense' AND occurred_on=? THEN amount END),0) today_expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=?",(today,today,uid,month)).fetchone()
     daily=rows(db.execute("SELECT occurred_on day,SUM(CASE WHEN type='income' THEN amount ELSE 0 END) income,SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) expense FROM transactions WHERE user_id=? AND substr(occurred_on,1,7)=? GROUP BY occurred_on ORDER BY occurred_on",(uid,month)))
     bycat=rows(db.execute("SELECT COALESCE(c.name,'Khác') label,SUM(t.amount) value,t.type FROM transactions t LEFT JOIN categories c ON c.id=t.category_id WHERE t.user_id=? AND substr(t.occurred_on,1,7)=? AND t.type IN('income','expense') GROUP BY t.type,c.name",(uid,month)))
@@ -276,6 +280,6 @@ def settings():
 @root_required
 def backup():
     if not check_csrf():return fail('Phiên bảo mật không hợp lệ',403)
-    folder=current_app.root_path+'/backups';import os;os.makedirs(folder,exist_ok=True);name='finance_'+datetime.now().strftime('%Y%m%d_%H%M%S')+'.db';target=folder+'/'+name
+    folder=current_app.root_path+'/backups';import os;os.makedirs(folder,exist_ok=True);name='finance_'+vn_now().strftime('%Y%m%d_%H%M%S')+'.db';target=folder+'/'+name
     source=get_db();dest=sqlite3.connect(target);source.backup(dest);dest.close()
     return send_file(target,as_attachment=True,download_name=name)

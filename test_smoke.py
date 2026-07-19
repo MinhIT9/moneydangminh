@@ -2,6 +2,7 @@ import tempfile, unittest
 from pathlib import Path
 from app import create_app
 from database import init_db, connect, merge_duplicate_accounts
+from api import vn_today, VN_TZ
 
 class SmokeTest(unittest.TestCase):
     def setUp(self):
@@ -48,5 +49,9 @@ class SmokeTest(unittest.TestCase):
         login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json();headers={'X-CSRF-Token':login['data']['csrf_token']}
         self.c.post('/api/auth/change-password',json={'current_password':'Minh1111','new_password':'MatKhauMoi123'},headers=headers)
         self.assertEqual(len(self.c.get('/api/accounts').get_json()['data']),3)
+
+    def test_vietnam_timezone(self):
+        from datetime import datetime
+        self.assertEqual(vn_today(),datetime.now(VN_TZ).date())
 
 if __name__=='__main__': unittest.main()
