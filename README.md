@@ -20,3 +20,18 @@ Development dùng `data/finance_dev.db`. Đặt `SECRET_KEY` bằng chuỗi ng�
 Nhấp `start_prod.bat`. Script tự tạo `.venv`, cài thư viện, đặt `APP_ENV=production`, dùng `data/finance_prod.db` và chạy Waitress tại `127.0.0.1:5000`. Trước khi vận hành, đặt biến `SECRET_KEY` dài và ngẫu nhiên; đặt `HTTPS=1` khi reverse proxy HTTPS (ví dụ Caddy).
 
 Database tự khởi tạo và không bị ghi đè. SQLite bật foreign keys, WAL và busy timeout. Root tải backup nhất quán qua SQLite Backup API trong Cài đặt.
+
+## Chức năng hiện có
+
+- Dashboard theo tháng với bốn biểu đồ thu/chi, nguồn thu, danh mục chi và tiến độ trả nợ.
+- Giao dịch có tìm kiếm, bộ lọc, phân trang, kiểm tra danh mục và chống số dư âm.
+- Tài khoản có sửa, ẩn, chuyển tiền và xem lịch sử.
+- Khoản nợ có sửa, xóa an toàn, thanh toán một phần và lịch sử thanh toán.
+- Quản trị đăng ký, khóa/mở khóa, xóa người dùng và tải backup.
+- Frontend tách lớp gọi API, tiện ích UI và điều phối màn hình trong `static/js`.
+
+## Kiểm thử
+
+```powershell
+python -m unittest -v test_smoke.py
+```

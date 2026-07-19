@@ -22,11 +22,14 @@ def create_app():
     def register_page():return render_template('register.html')
     @app.errorhandler(sqlite3.Error)
     def db_error(_):return fail('Không thể xử lý dữ liệu lúc này',500)
+    @app.errorhandler(ValueError)
+    def validation_error(error):return fail(str(error),400)
     @app.errorhandler(404)
     def not_found(_):return fail('Không tìm thấy',404) if request.path.startswith('/api/') else ('Không tìm thấy',404)
     @app.after_request
     def cache(res):
         if request.path.startswith('/static/'):res.headers['Cache-Control']='public,max-age=604800'
+        res.headers['X-Content-Type-Options']='nosniff';res.headers['Referrer-Policy']='strict-origin-when-cross-origin';res.headers['X-Frame-Options']='DENY'
         return res
     return app
 app=create_app()
