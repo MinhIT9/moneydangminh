@@ -1,57 +1,162 @@
 # Minh Finance
 
-Ứng dụng quản lý thu chi cá nhân bằng Flask và SQLite, giao diện SPA-like bằng Fetch API.
+Minh Finance là ứng dụng ghi chép thu chi cá nhân, xây bằng Next.js App Router,
+TypeScript, Prisma và MariaDB. Ứng dụng có landing page công khai; các trang
+thu chi, danh mục, khoản nợ và cài đặt yêu cầu đăng nhập. Có thêm khu vực quản
+trị để mở/đóng đăng ký và quản lý tài khoản thường.
 
-## Chạy development
+## Yêu cầu
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-.venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python app.py
-```
+- Node.js 20.19 trở lên
+- MariaDB đang chạy (khuyến nghị bản hiện hành, tương thích MySQL)
+- npm đi kèm Node.js
 
-Mở `http://127.0.0.1:5000/login`. Tài khoản khởi tạo: `root@dangminh.com`, mật khẩu ban đầu `Minh1111`. Hệ thống yêu cầu đổi mật khẩu; không dùng mật khẩu này cho production.
+## Chạy ở máy local
 
-Development dùng `data/finance_dev.db`. Đặt `SECRET_KEY` bằng chuỗi ngẫu nhiên trong môi trường thực tế.
+1. Cài thư viện:
 
-## Chạy production
+   ```bash
+   npm install
+   ```
 
-Nhấp `start_prod.bat`. Script tự tạo `.venv`, cài thư viện, đặt `APP_ENV=production`, dùng `data/finance_prod.db` và chạy Waitress tại `127.0.0.1:5000`. Trước khi vận hành, đặt biến `SECRET_KEY` dài và ngẫu nhiên; đặt `HTTPS=1` khi reverse proxy HTTPS (ví dụ Caddy).
+2. Tạo tệp môi trường từ mẫu. Trên PowerShell:
 
-Database tự khởi tạo và không bị ghi đè. SQLite bật foreign keys, WAL và busy timeout. Root tải backup nhất quán qua SQLite Backup API trong Cài đặt.
+   ```powershell
+   Copy-Item .env.example .env
+   ```
 
-## Chức năng hiện có
+   Trên macOS/Linux:
 
-- Dashboard theo tháng với bốn biểu đồ thu/chi, nguồn thu, danh mục chi và tiến độ trả nợ.
-- Giao dịch có tìm kiếm, bộ lọc, phân trang, kiểm tra danh mục và chống số dư âm.
-- Phương thức thanh toán là nhãn tùy chọn (Tiền mặt, Ngân hàng, MoMo...), không quản lý số dư.
-- Khoản nợ có sửa, xóa an toàn, thanh toán một phần và lịch sử thanh toán.
-- Quản trị đăng ký, khóa/mở khóa, xóa người dùng và tải backup.
-- Frontend tách lớp gọi API, tiện ích UI và từng màn hình trong `static/js/views`.
+   ```bash
+   cp .env.example .env
+   ```
 
-Ứng dụng vận hành như một sổ thu–chi: thu nhập và chi tiêu là dữ liệu chính. Phương thức thanh toán chỉ phục vụ lọc, tìm kiếm và đối chiếu; bỏ trống phương thức vẫn hợp lệ. Chuyển tiền giữa ví không được tính vì hệ thống không theo dõi số dư thực tế của ví.
+3. Mở `.env` và thay tất cả giá trị mẫu bằng cấu hình local của bạn. Các biến
+   `DB_*`, `DATABASE_URL` và `SESSION_SECRET` là bí mật phía máy chủ, tuyệt đối
+   không thêm tiền tố `NEXT_PUBLIC_` và không commit tệp `.env`.
 
-## Kiểm thử
+   - `DATABASE_URL` được Prisma dùng khi tạo/chạy migration.
+   - Nếu mật khẩu có ký tự đặc biệt, phải URL-encode mật khẩu trong
+     `DATABASE_URL`.
+   - `SESSION_SECRET` nên là chuỗi ngẫu nhiên tối thiểu 32 ký tự.
+   - `NEXT_PUBLIC_APP_URL` là địa chỉ web công khai, dùng cho sitemap,
+     canonical URL và ảnh chia sẻ. Local mặc định là `http://localhost:3000`.
 
-```powershell
-python -m unittest -v test_smoke.py
-```
+4. Tạo database và tài khoản MariaDB riêng cho ứng dụng bằng tài khoản quản trị
+   MariaDB của bạn. Chỉ cấp quyền cần thiết trên đúng database của ứng dụng;
+   không dùng tài khoản `root` cho web.
 
-## Format code
+5. Sinh Prisma Client và áp dụng migration có sẵn:
 
-Frontend uses Prettier and Python uses Black. Install development tools once, then run:
+   ```bash
+   npm run db:generate
+   npm run db:deploy
+   ```
 
-```powershell
-npm install
-.venv\Scripts\python -m pip install -r requirements-dev.txt
-npm run format
-.venv\Scripts\python -m black .
-```
+   `db:deploy` chỉ áp dụng các migration đã có trong `prisma/migrations`, phù
+   hợp để tạo một database mới từ source hiện tại. Khi phát triển và **có thay
+   đổi schema**, dùng `npm run db:migrate -- --name mo-ta-thay-doi` để tạo
+   migration mới, sau đó commit migration đó cùng mã nguồn.
 
-Check formatting without changing files:
+6. Nếu cần một tài khoản quản trị đầu tiên, điền `ADMIN_EMAIL`,
+   `ADMIN_PASSWORD`, `ADMIN_PHONE` (và tùy chọn `ADMIN_DISPLAY_NAME`) vào `.env`,
+   sau đó chạy một lần:
 
-```powershell
+   ```bash
+   npm run db:seed-admin
+   ```
+
+   Lệnh không in mật khẩu ra màn hình; sau khi hoàn thành, xóa
+   `ADMIN_PASSWORD` khỏi `.env`. Không có email/mật khẩu quản trị mặc định được
+   nhúng trong source.
+
+7. Khởi chạy:
+
+   ```bash
+   npm run dev
+   ```
+
+   Mở [http://localhost:3000](http://localhost:3000), tạo tài khoản rồi bắt
+   đầu ghi thu chi.
+
+## Kiểm tra trước khi đưa lên server
+
+```bash
 npm run format:check
-.venv\Scripts\python -m black --check .
+npm run typecheck
+npm run lint
+npm run build
+```
+
+`npm run build` cũng tự sinh Prisma Client. Không sửa trực tiếp thư mục
+`src/generated/prisma` vì đó là mã được tạo lại từ schema.
+
+## Triển khai production
+
+1. Chuẩn bị MariaDB, database riêng và một tài khoản database ít quyền nhất có
+   thể. Sao lưu database trước mỗi lần chạy migration.
+2. Khai báo biến môi trường tại nơi deploy; không tải hoặc commit tệp `.env`
+   thật. Dùng URL HTTPS thật cho `NEXT_PUBLIC_APP_URL` và một `SESSION_SECRET`
+   riêng, dài, ngẫu nhiên.
+3. Cài đúng dependency đã khóa phiên bản và áp dụng migration:
+
+   ```bash
+   npm ci
+   npm run db:deploy
+   npm run build
+   npm run start
+   ```
+
+4. Đặt ứng dụng sau reverse proxy/hosting có HTTPS. Không dùng
+   `npm run db:migrate` trực tiếp trên production: lệnh này dành cho môi trường
+   phát triển và có thể tạo migration mới.
+
+## Biến môi trường
+
+Xem đầy đủ trong [`.env.example`](.env.example). Các biến hiện có:
+
+| Biến                                | Mục đích                              | Có thể công khai?    |
+| ----------------------------------- | ------------------------------------- | -------------------- |
+| `NEXT_PUBLIC_APP_URL`               | URL chuẩn của website cho SEO/chia sẻ | Có                   |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`     | Kết nối MariaDB ở runtime             | Không                |
+| `DB_USER`, `DB_PASSWORD`            | Tài khoản MariaDB ở runtime           | Không                |
+| `DATABASE_URL`                      | Kết nối Prisma cho migration          | Không                |
+| `SESSION_SECRET`                    | Băm phiên đăng nhập                   | Không                |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`     | Bootstrap quản trị một lần            | Không                |
+| `ADMIN_PHONE`, `ADMIN_DISPLAY_NAME` | Thông tin bootstrap quản trị          | Không                |
+| `SUPPORT_EMAIL`                     | Email hiển thị trên trang hỗ trợ      | Có thể, tùy lựa chọn |
+
+## Bảo mật và vận hành
+
+- Không đưa mật khẩu database, khóa phiên hay tệp `.env` vào Git, log, ảnh chụp
+  màn hình hoặc mã phía trình duyệt.
+- Nếu một bí mật từng được chia sẻ ngoài kênh an toàn, hãy đổi/thu hồi bí mật đó
+  trước khi public ứng dụng.
+- Ứng dụng gửi các header bảo vệ cơ bản: chống MIME sniffing, clickjacking,
+  hạn chế referrer và tắt các quyền trình duyệt không dùng đến. Dashboard,
+  quản trị, đăng nhập, đăng ký và API được gắn `X-Robots-Tag: noindex`.
+- Sao lưu MariaDB định kỳ, kiểm tra khả năng khôi phục và theo dõi lỗi server.
+- Khi thêm tính năng upload tệp, OAuth hoặc script bên thứ ba, hãy rà soát lại
+  Content Security Policy và các header trước khi bật production.
+
+## Cấu trúc chính
+
+```text
+app/                 Route và giao diện Next.js
+src/actions/         Server Actions: xác thực và nghiệp vụ tài chính
+src/lib/             Kết nối DB, xác thực, validate và tiện ích
+prisma/schema.prisma Mô hình dữ liệu MariaDB
+prisma/migrations/   Lịch sử migration được commit
+```
+
+## Lệnh thường dùng
+
+```bash
+npm run dev          # Chạy môi trường phát triển
+npm run build        # Sinh Prisma Client và build production
+npm run start        # Chạy bản production đã build
+npm run db:generate  # Sinh lại Prisma Client
+npm run db:deploy    # Áp dụng migration hiện có
+npm run db:migrate   # Tạo migration mới khi phát triển
+npm run db:seed-admin # Tạo/nâng quyền tài khoản quản trị một lần
 ```

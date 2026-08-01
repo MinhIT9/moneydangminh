@@ -1,9 +1,6 @@
 node_modules/
-.venv/
-__pycache__/
-data/
-backups/
-*.min.js
-*.db
-*.sqlite*
-ngrok.exe
+.next/
+src/generated/
+coverage/
+*.lock
+next-env.d.ts
