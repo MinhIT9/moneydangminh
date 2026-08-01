@@ -1,120 +1,100 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { LocaleProvider } from '@/i18n/locale-provider';
+import { supportCopy } from '@/i18n/legal-copy';
+import { getTranslations } from '@/i18n/server';
 
 const supportEmail = process.env.SUPPORT_EMAIL;
 
 export const metadata: Metadata = {
-  title: 'Hỗ trợ | Minh Finance',
+  title: 'Hỗ trợ | Ví Smart',
   description:
-    'Cần hỗ trợ khi dùng Minh Finance? Xem các hướng dẫn cơ bản hoặc gửi câu hỏi cho đội ngũ hỗ trợ.',
+    'Cần hỗ trợ khi dùng Ví Smart? Xem các hướng dẫn cơ bản hoặc gửi câu hỏi cho đội ngũ hỗ trợ.',
   alternates: {
     canonical: '/support',
   },
   openGraph: {
-    title: 'Hỗ trợ | Minh Finance',
-    description: 'Hướng dẫn và kênh hỗ trợ cho người dùng Minh Finance.',
+    title: 'Hỗ trợ | Ví Smart',
+    description: 'Hướng dẫn và kênh hỗ trợ cho người dùng Ví Smart.',
     url: '/support',
   },
 };
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  const { locale, t } = await getTranslations();
+  const copy = supportCopy[locale];
+
   return (
-    <main className="support-page">
-      <style>{supportStyles}</style>
-      <header className="support-page__header">
-        <Link className="support-page__brand" href="/">
-          <span aria-hidden="true">M</span>
-          Minh Finance
-        </Link>
-        <Link className="support-page__back" href="/">
-          ← Về trang chủ
-        </Link>
-      </header>
-
-      <section className="support-page__hero" aria-labelledby="support-title">
-        <p>TRUNG TÂM HỖ TRỢ</p>
-        <h1 id="support-title">Bạn cần giúp ở chỗ nào?</h1>
-        <span>
-          Dù là khoản ghi chép đầu tiên hay một câu hỏi về tài khoản, chúng tôi luôn muốn việc quản
-          lý tiền của bạn nhẹ nhàng hơn.
-        </span>
-      </section>
-
-      <section className="support-page__content" aria-label="Các cách nhận hỗ trợ">
-        <div className="support-page__grid">
-          <article>
-            <span className="support-page__icon" aria-hidden="true">
-              1
-            </span>
-            <h2>Bắt đầu ghi thu chi</h2>
-            <p>
-              Chọn nút Ghi thu chi, chọn Thu nhập hoặc Chi tiêu, rồi nhập số tiền và ngày phát sinh.
-              Danh mục và phương thức thanh toán là tùy chọn linh hoạt.
-            </p>
-          </article>
-          <article>
-            <span className="support-page__icon" aria-hidden="true">
-              2
-            </span>
-            <h2>Xem lại tháng của bạn</h2>
-            <p>
-              Trên Tổng quan, chọn tháng muốn xem để biết tổng thu, tổng chi và các khoản gần đây.
-              Bạn có thể dùng bộ lọc ở Sổ thu chi để tìm nhanh hơn.
-            </p>
-          </article>
-          <article>
-            <span className="support-page__icon" aria-hidden="true">
-              3
-            </span>
-            <h2>Quản lý danh mục và nợ</h2>
-            <p>
-              Tạo danh mục theo thói quen của bạn như Tiền chợ, Học phí hay Lái hộ. Mục Khoản nợ
-              giúp bạn theo dõi số tiền còn lại cần trả hoặc cần thu.
-            </p>
-          </article>
-        </div>
-
-        <div className="support-page__contact">
-          <div>
-            <p>VẪN CẦN HỖ TRỢ?</p>
-            <h2>Gửi câu hỏi cho Minh Finance</h2>
-            <span>
-              Hãy mô tả ngắn tình huống bạn gặp phải, kèm ảnh màn hình nếu có. Chúng tôi sẽ phản hồi
-              qua email sớm nhất có thể.
-            </span>
+    <LocaleProvider key={locale} initialLocale={locale}>
+      <main className="support-page">
+        <style>{supportStyles}</style>
+        <header className="support-page__header">
+          <Link className="support-page__brand" href="/">
+            <span aria-hidden="true">V</span>
+            {t('brand.name')}
+          </Link>
+          <div className="support-page__header-actions">
+            <LanguageSwitcher compact />
+            <Link className="support-page__back" href="/">
+              {copy.home}
+            </Link>
           </div>
-          {supportEmail ? (
-            <a href={`mailto:${supportEmail}?subject=H%E1%BB%97%20tr%E1%BB%A3%20Minh%20Finance`}>
-              Gửi email hỗ trợ
-              <small>{supportEmail}</small>
-            </a>
-          ) : (
-            <p className="support-page__email-note">
-              Kênh email hỗ trợ đang được cập nhật. Người vận hành cần cấu hình SUPPORT_EMAIL trước
-              khi public.
-            </p>
-          )}
-        </div>
+        </header>
 
-        <aside className="support-page__privacy-note">
-          <strong>Lưu ý bảo mật</strong>
-          <p>
-            Đừng gửi mật khẩu hoặc mã xác thực qua email. Chúng tôi sẽ không bao giờ yêu cầu bạn
-            cung cấp mật khẩu để hỗ trợ.
-          </p>
-          <Link href="/privacy">Xem Chính sách riêng tư</Link>
-        </aside>
-      </section>
-    </main>
+        <section className="support-page__hero" aria-labelledby="support-title">
+          <p>{copy.eyebrow}</p>
+          <h1 id="support-title">{copy.title}</h1>
+          <span>{copy.description}</span>
+        </section>
+
+        <section className="support-page__content" aria-label={copy.contentLabel}>
+          <div className="support-page__grid">
+            {copy.guides.map((guide, index) => (
+              <article key={guide.title}>
+                <span className="support-page__icon" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <h2>{guide.title}</h2>
+                <p>{guide.description}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="support-page__contact">
+            <div>
+              <p>{copy.contactEyebrow}</p>
+              <h2>{copy.contactTitle}</h2>
+              <span>{copy.contactDescription}</span>
+            </div>
+            {supportEmail ? (
+              <a href={`mailto:${supportEmail}?subject=${encodeURIComponent(copy.contactSubject)}`}>
+                {copy.contactAction}
+                <small>{supportEmail}</small>
+              </a>
+            ) : (
+              <p className="support-page__email-note">{copy.emailUnavailable}</p>
+            )}
+          </div>
+
+          <aside className="support-page__privacy-note">
+            <strong>{copy.securityTitle}</strong>
+            <p>{copy.securityDescription}</p>
+            <Link href="/privacy">{copy.privacyAction}</Link>
+          </aside>
+        </section>
+      </main>
+    </LocaleProvider>
   );
 }
 
 const supportStyles = `
-  .support-page { min-height: 100vh; color: #192235; background: linear-gradient(180deg, #f7f6ff 0, #fff 430px); font-family: Arial, Helvetica, sans-serif; line-height: 1.55; }
+  .support-page { min-height: 100vh; color: #192235; background: linear-gradient(180deg, #f7f6ff 0, #fff 430px); font-family: inherit; line-height: 1.55; }
   .support-page *, .support-page *::before, .support-page *::after { box-sizing: border-box; }
   .support-page a { text-decoration: none; }
   .support-page__header, .support-page__hero, .support-page__content { width: min(980px, calc(100% - 40px)); margin-inline: auto; }
   .support-page__header { min-height: 76px; display: flex; align-items: center; justify-content: space-between; }
+  .support-page__header-actions { display: flex; align-items: center; gap: 12px; }
   .support-page__brand { display: inline-flex; align-items: center; gap: 9px; color: #192235; font-size: 17px; font-weight: 850; letter-spacing: -.03em; }
   .support-page__brand span { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #876eff, #5836df); }
   .support-page__back { color: #667085; font-size: 14px; font-weight: 700; }

@@ -1,21 +1,22 @@
 'use client';
 
+import { useLocale } from '@/i18n/locale-provider';
+
 export default function PrivateError({
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useLocale();
+
   return (
     <section className="error-card" role="alert">
-      <span className="badge danger">Có lỗi tạm thời</span>
-      <h1>Chưa tải được dữ liệu của bạn</h1>
-      <p>
-        Hãy thử lại. Nếu lỗi vẫn tiếp diễn, kiểm tra kết nối mạng hoặc cấu hình máy chủ rồi liên hệ
-        hỗ trợ.
-      </p>
+      <span className="badge danger">{t('error.temporary')}</span>
+      <h1>{t('error.dataLoad')}</h1>
+      <p>{t('error.dataLoadDescription')}</p>
       <button className="button" type="button" onClick={reset}>
-        Thử lại
+        {t('error.tryAgain')}
       </button>
     </section>
   );

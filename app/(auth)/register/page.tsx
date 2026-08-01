@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { registerAction } from '@/actions/auth';
 import { SubmitButton } from '@/components/submit-button';
 import { db } from '@/lib/db';
+import { getTranslations } from '@/i18n/server';
 
 export const metadata: Metadata = {
   title: 'Đăng ký',
@@ -15,6 +16,7 @@ export default async function RegisterPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const { t } = await getTranslations();
   const registrationSetting = await db.appSetting.findUnique({
     where: { key: 'registration_open' },
   });
@@ -23,10 +25,10 @@ export default async function RegisterPage({
   if (!registrationOpen) {
     return (
       <>
-        <h1>Đăng ký đang tạm đóng</h1>
-        <p className="muted">Bạn vẫn có thể đăng nhập nếu đã có tài khoản.</p>
+        <h1>{t('auth.registrationClosed')}</h1>
+        <p className="muted">{t('auth.registrationClosedDescription')}</p>
         <Link className="button" href="/login">
-          Đi đến đăng nhập
+          {t('auth.goToLogin')}
         </Link>
       </>
     );
@@ -34,30 +36,30 @@ export default async function RegisterPage({
 
   return (
     <>
-      <h1>Tạo sổ thu chi của bạn</h1>
-      <p className="muted">Chỉ mất một phút để bắt đầu ghi chép rõ ràng hơn mỗi ngày.</p>
+      <h1>{t('auth.createLedger')}</h1>
+      <p className="muted">{t('auth.createLedgerDescription')}</p>
       <form action={registerAction} className="stack">
         {error ? <p className="notice">{error}</p> : null}
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('common.email')}</label>
           <input id="email" name="email" type="email" autoComplete="email" required autoFocus />
         </div>
         <div className="field">
-          <label htmlFor="phone">Số điện thoại</label>
+          <label htmlFor="phone">{t('auth.phone')}</label>
           <input
             id="phone"
             name="phone"
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="Ví dụ: 0901234567"
+            placeholder={t('auth.phoneExample')}
             pattern="0[35789][0-9]{8}"
             maxLength={10}
             required
           />
         </div>
         <div className="field">
-          <label htmlFor="password">Mật khẩu</label>
+          <label htmlFor="password">{t('common.password')}</label>
           <input
             id="password"
             name="password"
@@ -68,7 +70,7 @@ export default async function RegisterPage({
           />
         </div>
         <div className="field">
-          <label htmlFor="passwordConfirmation">Nhập lại mật khẩu</label>
+          <label htmlFor="passwordConfirmation">{t('auth.confirmPassword')}</label>
           <input
             id="passwordConfirmation"
             name="passwordConfirmation"
@@ -78,10 +80,12 @@ export default async function RegisterPage({
             required
           />
         </div>
-        <SubmitButton pendingText="Đang tạo tài khoản…">Tạo tài khoản miễn phí</SubmitButton>
+        <SubmitButton pendingText={t('auth.creatingAccount')}>
+          {t('auth.createAccount')}
+        </SubmitButton>
       </form>
       <p className="auth-footer">
-        Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+        {t('auth.haveAccount')} <Link href="/login">{t('auth.login')}</Link>
       </p>
     </>
   );

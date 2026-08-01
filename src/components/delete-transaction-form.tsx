@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { deleteTransactionAction } from '@/actions/finance';
+import { useLocale } from '@/i18n/locale-provider';
 
 type DeleteTransactionFormProps = {
   transactionId: string;
@@ -12,14 +13,13 @@ export function DeleteTransactionForm({
   transactionId,
   isDebtPayment,
 }: DeleteTransactionFormProps) {
+  const { t } = useLocale();
   const confirmationInput = useRef<HTMLInputElement>(null);
 
   function confirmDeletion(event: React.FormEvent<HTMLFormElement>) {
     if (!isDebtPayment) return;
 
-    const accepted = window.confirm(
-      'Đây là giao dịch tạo từ một lần thanh toán nợ. Xóa nó sẽ khôi phục số còn lại của khoản nợ. Bạn có chắc chắn muốn tiếp tục?',
-    );
+    const accepted = window.confirm(t('transaction.deleteDebtPaymentConfirm'));
     if (!accepted) {
       event.preventDefault();
       return;
@@ -32,7 +32,7 @@ export function DeleteTransactionForm({
     <form action={deleteTransactionAction} className="inline-form" onSubmit={confirmDeletion}>
       <input type="hidden" name="id" value={transactionId} />
       <input ref={confirmationInput} type="hidden" name="confirm" value="false" />
-      <button className="icon-button" type="submit" aria-label="Xóa giao dịch">
+      <button className="icon-button" type="submit" aria-label={t('transaction.delete')}>
         ⌫
       </button>
     </form>

@@ -4,7 +4,8 @@ import { debtSummary, getMonthRange, toNumber } from '@/lib/finance';
 import { formatVnd } from '@/lib/money';
 import { db } from '@/lib/db';
 import { monthInputValue } from '@/lib/date';
-import { MonthSelect } from '@/components/month-select';
+import { DashboardMonthFilter } from '@/components/dashboard-month-filter';
+import { getTranslations } from '@/i18n/server';
 
 export default async function DashboardPage({
   searchParams,
@@ -12,70 +13,102 @@ export default async function DashboardPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const user = await requireUser();
+  const { t } = await getTranslations();
   const params = await searchParams;
   const { start, end, value: month } = getMonthRange(params.month ?? monthInputValue());
 
-  const [transactions, debts] = await Promise.all([
-    db.transaction.findMany({
-      where: { userId: user.id, occurredOn: { gte: start, lt: end } },
-      include: { category: true, paymentMethod: true },
-      orderBy: [{ occurredOn: 'desc' }, { createdAt: 'desc' }],
-    }),
-    db.debt.findMany({
-      where: { userId: user.id, status: 'ACTIVE' },
-      include: { payments: { select: { amount: true } } },
-      orderBy: { dueOn: 'asc' },
-    }),
-  ]);
+  const [transactionTotals, recentTransactions, expenseTotalsByCategory, debts, categories] =
+    await Promise.all([
+      db.transaction.groupBy({
+        by: ['type'],
+        where: { userId: user.id, occurredOn: { gte: start, lt: end } },
+        _sum: { amount: true },
+      }),
+      db.transaction.findMany({
+        where: { userId: user.id, occurredOn: { gte: start, lt: end } },
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          note: true,
+          category: { select: { name: true } },
+          paymentMethod: { select: { name: true } },
+        },
+        orderBy: [{ occurredOn: 'desc' }, { createdAt: 'desc' }],
+        take: 7,
+      }),
+      db.transaction.groupBy({
+        by: ['categoryId'],
+        where: {
+          userId: user.id,
+          type: 'EXPENSE',
+          occurredOn: { gte: start, lt: end },
+        },
+        _sum: { amount: true },
+      }),
+      db.debt.findMany({
+        where: { userId: user.id, status: 'ACTIVE' },
+        select: {
+          originalAmount: true,
+          payments: { select: { amount: true } },
+        },
+        orderBy: { dueOn: 'asc' },
+      }),
+      db.category.findMany({
+        where: { userId: user.id },
+        select: { id: true, name: true },
+      }),
+    ]);
 
-  const income = transactions
-    .filter((transaction) => transaction.type === 'INCOME')
-    .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
-  const expense = transactions
-    .filter((transaction) => transaction.type === 'EXPENSE')
-    .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
+  const income = toNumber(
+    transactionTotals.find((total) => total.type === 'INCOME')?._sum.amount ?? 0,
+  );
+  const expense = toNumber(
+    transactionTotals.find((total) => total.type === 'EXPENSE')?._sum.amount ?? 0,
+  );
   const remainingDebt = debts.reduce((sum, debt) => sum + debtSummary(debt).remaining, 0);
+  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
   const categoryTotals = new Map<string, number>();
 
-  transactions
-    .filter((transaction) => transaction.type === 'EXPENSE')
-    .forEach((transaction) => {
-      const label = transaction.category?.name ?? 'Chưa phân loại';
-      categoryTotals.set(label, (categoryTotals.get(label) ?? 0) + toNumber(transaction.amount));
-    });
+  expenseTotalsByCategory.forEach((total) => {
+    const label = total.categoryId
+      ? (categoryNames.get(total.categoryId) ?? t('common.uncategorized'))
+      : t('common.uncategorized');
+    const amount = toNumber(total._sum.amount ?? 0);
+    categoryTotals.set(label, (categoryTotals.get(label) ?? 0) + amount);
+  });
 
-  const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topCategories = [...categoryTotals.entries()]
+    .sort(([, amountA], [, amountB]) => amountB - amountA)
+    .slice(0, 5);
 
   return (
     <>
       <header className="page-head">
         <div>
-          <h1>Chào {user.displayName || 'bạn'} 👋</h1>
-          <p className="muted">Nhìn lại thu chi của bạn trong tháng này.</p>
+          <h1>
+            {t('dashboard.greeting', { name: user.displayName || t('dashboard.defaultName') })}
+          </h1>
+          <p className="muted">{t('dashboard.description')}</p>
         </div>
-        <form action="/dashboard" method="get">
-          <label className="sr-only" htmlFor="dashboard-month">
-            Chọn tháng
-          </label>
-          <MonthSelect id="dashboard-month" value={month} autoSubmit />
-        </form>
+        <DashboardMonthFilter value={month} />
       </header>
 
-      <section className="cards-grid" aria-label="Tổng quan tài chính">
+      <section className="cards-grid" aria-label={t('dashboard.summary')}>
         <article className="metric-card">
-          <small>Tổng thu</small>
+          <small>{t('dashboard.totalIncome')}</small>
           <strong className="amount-income">{formatVnd(income)}</strong>
         </article>
         <article className="metric-card">
-          <small>Tổng chi</small>
+          <small>{t('dashboard.totalExpense')}</small>
           <strong className="amount-expense">{formatVnd(expense)}</strong>
         </article>
         <article className="metric-card">
-          <small>Thu trừ chi</small>
+          <small>{t('dashboard.net')}</small>
           <strong className="amount-net">{formatVnd(income - expense)}</strong>
         </article>
         <Link className="metric-card" href="/debts">
-          <small>Tổng nợ còn lại</small>
+          <small>{t('dashboard.remainingDebt')}</small>
           <strong>{formatVnd(remainingDebt)}</strong>
         </Link>
       </section>
@@ -83,29 +116,29 @@ export default async function DashboardPage({
       <section className="section-grid">
         <article className="table-card">
           <div className="card-header">
-            <h2>Giao dịch gần đây</h2>
+            <h2>{t('dashboard.recentTransactions')}</h2>
             <Link className="muted" href={`/transactions?month=${month}`}>
-              Xem tất cả
+              {t('dashboard.viewAll')}
             </Link>
           </div>
-          {transactions.length ? (
+          {recentTransactions.length ? (
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Nội dung</th>
-                    <th>Phương thức</th>
-                    <th>Số tiền</th>
+                    <th>{t('dashboard.content')}</th>
+                    <th>{t('common.method')}</th>
+                    <th>{t('common.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.slice(0, 7).map((transaction) => (
+                  {recentTransactions.map((transaction) => (
                     <tr key={transaction.id}>
                       <td>
                         <span className="cell-title">
-                          {transaction.category?.name ?? 'Chưa phân loại'}
+                          {transaction.category?.name ?? t('common.uncategorized')}
                         </span>
-                        <span className="cell-note">{transaction.note || 'Không có ghi chú'}</span>
+                        <span className="cell-note">{transaction.note || t('common.noNote')}</span>
                       </td>
                       <td>{transaction.paymentMethod?.name ?? '—'}</td>
                       <td
@@ -123,8 +156,8 @@ export default async function DashboardPage({
           ) : (
             <div className="empty-card">
               <div>
-                <strong>Chưa có giao dịch trong tháng này</strong>
-                <span>Hãy bắt đầu bằng khoản thu hoặc chi đầu tiên của bạn.</span>
+                <strong>{t('dashboard.noTransactions')}</strong>
+                <span>{t('dashboard.noTransactionsDescription')}</span>
               </div>
             </div>
           )}
@@ -132,7 +165,7 @@ export default async function DashboardPage({
 
         <article className="card">
           <div className="card-header">
-            <h2>Chi tiêu theo danh mục</h2>
+            <h2>{t('dashboard.expensesByCategory')}</h2>
           </div>
           <div className="list-stack">
             {topCategories.length ? (
@@ -141,14 +174,16 @@ export default async function DashboardPage({
                   <div>
                     <strong>{name}</strong>
                     <span>
-                      {expense ? `${Math.round((amount / expense) * 100)}% tổng chi` : '0%'}
+                      {t('dashboard.percentOfExpenses', {
+                        percent: expense ? Math.round((amount / expense) * 100) : 0,
+                      })}
                     </span>
                   </div>
                   <b className="amount-expense">{formatVnd(amount)}</b>
                 </div>
               ))
             ) : (
-              <p className="muted">Chưa có chi tiêu để phân tích.</p>
+              <p className="muted">{t('dashboard.noExpenses')}</p>
             )}
           </div>
         </article>

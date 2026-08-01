@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash, randomBytes } from 'node:crypto';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -53,7 +54,12 @@ export async function destroySession() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function getCurrentUser() {
+/**
+ * The private layout and its active page often need the same user in one React Server Component
+ * render. React keeps this memoized per request only, so it removes the duplicate session query
+ * without sharing authenticated data between visitors or requests.
+ */
+export const getCurrentUser = cache(async function getCurrentUser() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
@@ -74,7 +80,7 @@ export async function getCurrentUser() {
   }
 
   return session.user;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

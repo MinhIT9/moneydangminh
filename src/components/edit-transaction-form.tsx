@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { updateTransactionAction } from '@/actions/finance';
 import { MoneyInput } from '@/components/money-input';
 import { SubmitButton } from '@/components/submit-button';
+import { useLocale } from '@/i18n/locale-provider';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
 
@@ -29,6 +30,7 @@ export function EditTransactionForm({
   methods,
   month,
 }: EditTransactionFormProps) {
+  const { t } = useLocale();
   const [type, setType] = useState<TransactionType>(transaction.type);
   const matchingCategories = useMemo(
     () => categories.filter((category) => category.type === type),
@@ -37,15 +39,15 @@ export function EditTransactionForm({
 
   return (
     <details className="form-reveal" open>
-      <summary>✎ Sửa giao dịch</summary>
+      <summary>✎ {t('transaction.edit')}</summary>
       <form action={updateTransactionAction} className="form-card">
         <input type="hidden" name="id" value={transaction.id} />
         <input type="hidden" name="month" value={month} />
         <div className="form-grid">
           <fieldset className="field full type-field">
-            <legend>Loại giao dịch</legend>
+            <legend>{t('transaction.type')}</legend>
             <input name="type" type="hidden" value={type} />
-            <div className="type-toggle" role="group" aria-label="Loại giao dịch">
+            <div className="type-toggle" role="group" aria-label={t('transaction.type')}>
               <button
                 className={
                   type === 'INCOME' ? 'type-toggle__button is-income' : 'type-toggle__button'
@@ -54,7 +56,7 @@ export function EditTransactionForm({
                 aria-pressed={type === 'INCOME'}
                 onClick={() => setType('INCOME')}
               >
-                ↗ Thu nhập
+                ↗ {t('transaction.income')}
               </button>
               <button
                 className={
@@ -64,23 +66,23 @@ export function EditTransactionForm({
                 aria-pressed={type === 'EXPENSE'}
                 onClick={() => setType('EXPENSE')}
               >
-                ↘ Chi tiêu
+                ↘ {t('transaction.expense')}
               </button>
             </div>
           </fieldset>
           <div className="field">
-            <label htmlFor="edit-amount">Số tiền</label>
+            <label htmlFor="edit-amount">{t('common.amount')}</label>
             <MoneyInput id="edit-amount" name="amount" defaultValue={transaction.amount} required />
           </div>
           <div className="field">
-            <label htmlFor="edit-categoryId">Danh mục</label>
+            <label htmlFor="edit-categoryId">{t('transaction.category')}</label>
             <select
               id="edit-categoryId"
               key={type}
               name="categoryId"
               defaultValue={type === transaction.type ? (transaction.categoryId ?? '') : ''}
             >
-              <option value="">Chưa phân loại</option>
+              <option value="">{t('common.uncategorized')}</option>
               {matchingCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -89,13 +91,13 @@ export function EditTransactionForm({
             </select>
           </div>
           <div className="field">
-            <label htmlFor="edit-paymentMethodId">Phương thức (không bắt buộc)</label>
+            <label htmlFor="edit-paymentMethodId">{t('transaction.optionalMethod')}</label>
             <select
               id="edit-paymentMethodId"
               name="paymentMethodId"
               defaultValue={transaction.paymentMethodId ?? ''}
             >
-              <option value="">Không chọn</option>
+              <option value="">{t('common.notSelected')}</option>
               {methods.map((method) => (
                 <option key={method.id} value={method.id}>
                   {method.name}
@@ -104,7 +106,7 @@ export function EditTransactionForm({
             </select>
           </div>
           <div className="field">
-            <label htmlFor="edit-occurredOn">Ngày</label>
+            <label htmlFor="edit-occurredOn">{t('common.date')}</label>
             <input
               id="edit-occurredOn"
               name="occurredOn"
@@ -114,7 +116,7 @@ export function EditTransactionForm({
             />
           </div>
           <div className="field full">
-            <label htmlFor="edit-note">Ghi chú</label>
+            <label htmlFor="edit-note">{t('common.note')}</label>
             <input
               id="edit-note"
               name="note"
@@ -125,9 +127,11 @@ export function EditTransactionForm({
         </div>
         <div className="form-actions">
           <Link className="button-ghost" href={`/transactions?month=${month}`}>
-            Hủy
+            {t('common.cancel')}
           </Link>
-          <SubmitButton pendingText="Đang cập nhật…">Lưu thay đổi</SubmitButton>
+          <SubmitButton pendingText={t('transaction.updating')}>
+            {t('transaction.saveChanges')}
+          </SubmitButton>
         </div>
       </form>
     </details>

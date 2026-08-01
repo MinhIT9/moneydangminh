@@ -2,6 +2,7 @@ import { changePasswordAction } from '@/actions/auth';
 import { updateProfileAction } from '@/actions/finance';
 import { SubmitButton } from '@/components/submit-button';
 import { requireUser } from '@/lib/auth';
+import { getTranslations } from '@/i18n/server';
 
 export default async function SettingsPage({
   searchParams,
@@ -9,24 +10,25 @@ export default async function SettingsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const user = await requireUser();
+  const { t } = await getTranslations();
   const { error } = await searchParams;
 
   return (
     <>
       <header className="page-head">
         <div>
-          <h1>Cài đặt</h1>
-          <p className="muted">Quản lý thông tin hiển thị và bảo mật tài khoản của bạn.</p>
+          <h1>{t('settings.title')}</h1>
+          <p className="muted">{t('settings.description')}</p>
         </div>
       </header>
       {error ? <p className="notice">{error}</p> : null}
 
       <section className="section-grid">
         <form action={updateProfileAction} className="form-card">
-          <h2>Thông tin cá nhân</h2>
+          <h2>{t('settings.personal')}</h2>
           <div className="form-grid">
             <div className="field full">
-              <label htmlFor="displayName">Tên hiển thị</label>
+              <label htmlFor="displayName">{t('settings.displayName')}</label>
               <input
                 id="displayName"
                 name="displayName"
@@ -36,24 +38,24 @@ export default async function SettingsPage({
               />
             </div>
             <div className="field">
-              <label>Email</label>
+              <label>{t('common.email')}</label>
               <input value={user.email} readOnly aria-readonly="true" />
             </div>
             <div className="field">
-              <label>Số điện thoại</label>
+              <label>{t('auth.phone')}</label>
               <input value={user.phone} readOnly aria-readonly="true" />
             </div>
           </div>
           <div className="form-actions">
-            <SubmitButton>Lưu thay đổi</SubmitButton>
+            <SubmitButton>{t('transaction.saveChanges')}</SubmitButton>
           </div>
         </form>
 
         <form action={changePasswordAction} className="form-card">
-          <h2>Đổi mật khẩu</h2>
+          <h2>{t('settings.changePassword')}</h2>
           <div className="form-grid">
             <div className="field full">
-              <label htmlFor="currentPassword">Mật khẩu hiện tại</label>
+              <label htmlFor="currentPassword">{t('settings.currentPassword')}</label>
               <input
                 id="currentPassword"
                 name="currentPassword"
@@ -63,7 +65,7 @@ export default async function SettingsPage({
               />
             </div>
             <div className="field">
-              <label htmlFor="newPassword">Mật khẩu mới</label>
+              <label htmlFor="newPassword">{t('settings.newPassword')}</label>
               <input
                 id="newPassword"
                 name="newPassword"
@@ -74,7 +76,7 @@ export default async function SettingsPage({
               />
             </div>
             <div className="field">
-              <label htmlFor="passwordConfirmation">Nhập lại mật khẩu</label>
+              <label htmlFor="passwordConfirmation">{t('auth.confirmPassword')}</label>
               <input
                 id="passwordConfirmation"
                 name="passwordConfirmation"
@@ -86,7 +88,9 @@ export default async function SettingsPage({
             </div>
           </div>
           <div className="form-actions">
-            <SubmitButton pendingText="Đang đổi mật khẩu…">Đổi mật khẩu</SubmitButton>
+            <SubmitButton pendingText={t('settings.changingPassword')}>
+              {t('settings.changePassword')}
+            </SubmitButton>
           </div>
         </form>
       </section>

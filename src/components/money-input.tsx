@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from '@/i18n/locale-provider';
 
 type MoneyInputProps = {
   id?: string;
@@ -17,18 +18,19 @@ function normalize(value: string | number | undefined) {
     .replace(/^0+(?=\d)/, '');
 }
 
-function display(value: string) {
-  return value ? new Intl.NumberFormat('vi-VN').format(Number(value)) : '';
+function display(value: string, locale: string) {
+  return value ? new Intl.NumberFormat(locale).format(Number(value)) : '';
 }
 
 export function MoneyInput({
   id,
   name,
   defaultValue,
-  placeholder = 'Ví dụ: 200.000',
+  placeholder,
   required = false,
   className,
 }: MoneyInputProps) {
+  const { locale, t } = useLocale();
   const [value, setValue] = useState(() => normalize(defaultValue));
 
   return (
@@ -36,10 +38,10 @@ export function MoneyInput({
       <input
         id={id}
         name={name}
-        value={display(value)}
+        value={display(value, locale === 'vi' ? 'vi-VN' : 'en-US')}
         inputMode="numeric"
         autoComplete="off"
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('money.example')}
         required={required}
         onChange={(event) => setValue(normalize(event.target.value))}
       />

@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Minh Finance - Ghi thu chi đơn giản mỗi ngày';
+export const alt = 'Ví Smart - Thu chi rõ ràng, sống nhẹ nhàng';
 export const size = {
   width: 1200,
   height: 630,
@@ -49,12 +49,12 @@ export default function OpenGraphImage() {
               background: 'linear-gradient(135deg, #8b72ff, #5534dd)',
             }}
           >
-            M
+            V
           </div>
-          Minh Finance
+          Ví Smart
         </div>
         <div style={{ display: 'flex', color: '#684be7', fontSize: 18, fontWeight: 800 }}>
-          SỔ THU CHI NHẸ NHÀNG MỖI NGÀY
+          VÍ SMART
         </div>
         <div
           style={{
@@ -66,10 +66,10 @@ export default function OpenGraphImage() {
             fontWeight: 800,
           }}
         >
-          Tiền đi đâu, bạn biết rõ.
+          Thu chi rõ ràng, sống nhẹ nhàng.
         </div>
         <div style={{ display: 'flex', marginTop: '22px', color: '#667085', fontSize: 24 }}>
-          Ghi thu chi đơn giản cho cuộc sống chủ động hơn.
+          Ghi chép gọn gàng để làm chủ tiền của bạn mỗi ngày.
         </div>
       </div>
 

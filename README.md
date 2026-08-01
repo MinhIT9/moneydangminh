@@ -1,6 +1,6 @@
-# Minh Finance
+# Ví Smart
 
-Minh Finance là ứng dụng ghi chép thu chi cá nhân, xây bằng Next.js App Router,
+Ví Smart là ứng dụng ghi chép thu chi cá nhân, xây bằng Next.js App Router,
 TypeScript, Prisma và MariaDB. Ứng dụng có landing page công khai; các trang
 thu chi, danh mục, khoản nợ và cài đặt yêu cầu đăng nhập. Có thêm khu vực quản
 trị để mở/đóng đăng ký và quản lý tài khoản thường.

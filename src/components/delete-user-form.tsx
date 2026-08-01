@@ -2,14 +2,14 @@
 
 import { useRef } from 'react';
 import { deleteUserAction } from '@/actions/admin';
+import { useLocale } from '@/i18n/locale-provider';
 
 export function DeleteUserForm({ userId, email }: { userId: string; email: string }) {
+  const { t } = useLocale();
   const confirmationInput = useRef<HTMLInputElement>(null);
 
   function confirmDeletion(event: React.FormEvent<HTMLFormElement>) {
-    const accepted = window.confirm(
-      `Xóa tài khoản ${email}? Toàn bộ dữ liệu thu chi, danh mục và khoản nợ của tài khoản này sẽ bị xóa vĩnh viễn.`,
-    );
+    const accepted = window.confirm(t('admin.deleteUserConfirm', { email }));
     if (!accepted) {
       event.preventDefault();
       return;
@@ -23,7 +23,7 @@ export function DeleteUserForm({ userId, email }: { userId: string; email: strin
       <input type="hidden" name="id" value={userId} />
       <input ref={confirmationInput} type="hidden" name="confirm" value="false" />
       <button className="button-danger" type="submit">
-        Xóa
+        {t('common.delete')}
       </button>
     </form>
   );

@@ -1,11 +1,14 @@
 'use client';
 
+import { useLocale } from '@/i18n/locale-provider';
+
 type MonthSelectProps = {
   name?: string;
   value: string;
   id?: string;
   className?: string;
-  autoSubmit?: boolean;
+  disabled?: boolean;
+  onValueChange?: (value: string) => void;
 };
 
 export function MonthSelect({
@@ -13,8 +16,10 @@ export function MonthSelect({
   value,
   id = 'month',
   className = 'filter-input',
-  autoSubmit = false,
+  disabled = false,
+  onValueChange,
 }: MonthSelectProps) {
+  const { locale, t } = useLocale();
   const [yearText] = value.split('-');
   const selectedYear = Number(yearText) || new Date().getFullYear();
   const options = [];
@@ -24,7 +29,12 @@ export function MonthSelect({
       const optionValue = `${year}-${String(month).padStart(2, '0')}`;
       options.push(
         <option key={optionValue} value={optionValue}>
-          Tháng {month} năm {year}
+          {t('month.label', {
+            month: new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+              month: 'long',
+            }).format(new Date(year, month - 1, 1)),
+            year,
+          })}
         </option>,
       );
     }
@@ -36,8 +46,9 @@ export function MonthSelect({
       className={className}
       name={name}
       defaultValue={value}
-      aria-label="Chọn tháng"
-      onChange={autoSubmit ? (event) => event.currentTarget.form?.requestSubmit() : undefined}
+      aria-label={t('month.select')}
+      disabled={disabled}
+      onChange={onValueChange ? (event) => onValueChange(event.currentTarget.value) : undefined}
     >
       {options}
     </select>

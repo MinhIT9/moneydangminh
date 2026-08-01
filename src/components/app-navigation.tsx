@@ -2,16 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const links = [
-  { href: '/dashboard', label: 'Tổng quan', icon: '◔' },
-  { href: '/transactions', label: 'Giao dịch', icon: '↔' },
-  { href: '/categories', label: 'Danh mục', icon: '▦' },
-  { href: '/debts', label: 'Khoản nợ', icon: '◫' },
-  { href: '/settings', label: 'Cài đặt', icon: '⚙' },
-];
-
-const adminLink = { href: '/admin', label: 'Quản trị', icon: '◈' };
+import { useLocale } from '@/i18n/locale-provider';
 
 export function AppNavigation({
   mobile = false,
@@ -21,10 +12,19 @@ export function AppNavigation({
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const { t } = useLocale();
+  const links = [
+    { href: '/dashboard', label: t('nav.dashboard'), icon: '◔' },
+    { href: '/transactions', label: t('nav.transactions'), icon: '↔' },
+    { href: '/categories', label: t('nav.categories'), icon: '▦' },
+    { href: '/debts', label: t('nav.debts'), icon: '◫' },
+    { href: '/settings', label: t('nav.settings'), icon: '⚙' },
+  ];
+  const adminLink = { href: '/admin', label: t('nav.admin'), icon: '◈' };
   const navigationLinks = isAdmin ? [...links, adminLink] : links;
 
   return (
-    <nav className={mobile ? 'mobile-nav' : 'side-nav'} aria-label="Điều hướng ứng dụng">
+    <nav className={mobile ? 'mobile-nav' : 'side-nav'} aria-label={t('nav.application')}>
       {navigationLinks.map((link) => (
         <Link
           key={link.href}

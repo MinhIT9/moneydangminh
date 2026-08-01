@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
+import { useLocale } from '@/i18n/locale-provider';
 
 type SubmitButtonProps = {
   children: React.ReactNode;
@@ -8,16 +9,13 @@ type SubmitButtonProps = {
   pendingText?: string;
 };
 
-export function SubmitButton({
-  children,
-  className = 'button',
-  pendingText = 'Đang lưu…',
-}: SubmitButtonProps) {
+export function SubmitButton({ children, className = 'button', pendingText }: SubmitButtonProps) {
+  const { t } = useLocale();
   const { pending } = useFormStatus();
 
   return (
     <button className={className} type="submit" disabled={pending}>
-      {pending ? pendingText : children}
+      {pending ? (pendingText ?? t('common.saving')) : children}
     </button>
   );
 }

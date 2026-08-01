@@ -1,0 +1,38 @@
+.switcher {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.select {
+  min-height: 38px;
+  padding: 0 30px 0 11px;
+  border: 1px solid #dfe4ef;
+  border-radius: 11px;
+  outline: none;
+  background: #fff;
+  color: #45516a;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.select:hover {
+  border-color: #cfc8ff;
+  color: var(--purple, #675ce8);
+}
+
+.select:focus-visible {
+  border-color: #9388fa;
+  box-shadow: 0 0 0 3px rgba(103, 92, 232, 0.12);
+}
+
+.compact .select {
+  min-width: 53px;
+  padding-right: 23px;
+}
+
+.select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}

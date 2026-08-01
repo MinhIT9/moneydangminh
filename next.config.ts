@@ -48,6 +48,12 @@ const noIndexRoutes = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    // Landing illustrations are large source PNGs. Next serves modern, responsive variants
+    // so small phones do not download the desktop-sized original.
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+  },
   async headers() {
     return [
       {

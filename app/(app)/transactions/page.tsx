@@ -8,7 +8,8 @@ import { getMonthRange } from '@/lib/finance';
 import { formatVnd } from '@/lib/money';
 import { db } from '@/lib/db';
 import { Prisma, TransactionType } from '@/generated/prisma/client';
-import { MonthSelect } from '@/components/month-select';
+import { TransactionFilters } from '@/components/transaction-filters';
+import { getTranslations } from '@/i18n/server';
 
 export default async function TransactionsPage({
   searchParams,
@@ -22,6 +23,7 @@ export default async function TransactionsPage({
   }>;
 }) {
   const user = await requireUser();
+  const { t } = await getTranslations();
   const params = await searchParams;
   const { start, end, value: month } = getMonthRange(params.month ?? monthInputValue());
   const query = params.q?.trim() ?? '';
@@ -41,21 +43,41 @@ export default async function TransactionsPage({
   const [transactions, categories, methods, editingTransaction] = await Promise.all([
     db.transaction.findMany({
       where,
-      include: { category: true, paymentMethod: true, debtPayment: { select: { id: true } } },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        note: true,
+        occurredOn: true,
+        category: { select: { name: true } },
+        paymentMethod: { select: { name: true } },
+        debtPayment: { select: { id: true } },
+      },
       orderBy: [{ occurredOn: 'desc' }, { createdAt: 'desc' }],
     }),
     db.category.findMany({
       where: { userId: user.id, isArchived: false },
+      select: { id: true, name: true, type: true },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     }),
     db.paymentMethod.findMany({
       where: { userId: user.id, isArchived: false },
+      select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
     params.edit
       ? db.transaction.findFirst({
           where: { id: params.edit, userId: user.id },
-          include: { debtPayment: { select: { id: true } } },
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            note: true,
+            occurredOn: true,
+            categoryId: true,
+            paymentMethodId: true,
+            debtPayment: { select: { id: true } },
+          },
         })
       : null,
   ]);
@@ -64,8 +86,8 @@ export default async function TransactionsPage({
     <>
       <header className="page-head">
         <div>
-          <h1>Sổ thu chi</h1>
-          <p className="muted">Ghi lại dòng tiền thật, không cần quản lý số dư ví.</p>
+          <h1>{t('transaction.title')}</h1>
+          <p className="muted">{t('transaction.description')}</p>
         </div>
       </header>
 
@@ -102,39 +124,32 @@ export default async function TransactionsPage({
           month={month}
         />
       ) : editingTransaction ? (
-        <p className="notice">
-          Giao dịch này được tạo từ một lần thanh toán nợ. Hãy xóa giao dịch để khôi phục khoản nợ,
-          sau đó ghi lại lần thanh toán đúng.
-        </p>
+        <p className="notice">{t('transaction.debtPaymentNotice')}</p>
       ) : null}
 
-      <form className="filter-bar" action="/transactions" method="get" style={{ marginTop: 16 }}>
-        <input className="filter-input" name="q" defaultValue={query} placeholder="Tìm ghi chú" />
-        <MonthSelect value={month} />
-        <select className="filter-input" name="type" defaultValue={type ?? ''}>
-          <option value="">Tất cả loại</option>
-          <option value="INCOME">Thu nhập</option>
-          <option value="EXPENSE">Chi tiêu</option>
-        </select>
-        <button className="button-ghost" type="submit">
-          Lọc
-        </button>
-      </form>
+      <div style={{ marginTop: 16 }}>
+        <TransactionFilters
+          key={`${month}:${query}:${type ?? ''}`}
+          month={month}
+          query={query}
+          type={type}
+        />
+      </div>
 
       <section className="table-card" style={{ marginTop: 16 }}>
         <div className="card-header">
-          <h2>{transactions.length} giao dịch</h2>
+          <h2>{t('transaction.count', { count: transactions.length })}</h2>
         </div>
         {transactions.length ? (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Ngày</th>
-                  <th>Nội dung</th>
-                  <th>Phương thức</th>
-                  <th>Số tiền</th>
-                  <th aria-label="Thao tác" />
+                  <th>{t('common.date')}</th>
+                  <th>{t('dashboard.content')}</th>
+                  <th>{t('common.method')}</th>
+                  <th>{t('common.amount')}</th>
+                  <th aria-label={t('common.actions')} />
                 </tr>
               </thead>
               <tbody>
@@ -143,7 +158,7 @@ export default async function TransactionsPage({
                     <td>{dateInputValue(transaction.occurredOn).split('-').reverse().join('/')}</td>
                     <td>
                       <span className="cell-title">
-                        {transaction.category?.name ?? 'Chưa phân loại'}
+                        {transaction.category?.name ?? t('common.uncategorized')}
                       </span>
                       {transaction.note ? (
                         <span className="cell-note">{transaction.note}</span>
@@ -161,7 +176,7 @@ export default async function TransactionsPage({
                           <Link
                             className="icon-button"
                             href={`/transactions?month=${month}&edit=${transaction.id}`}
-                            aria-label="Sửa giao dịch"
+                            aria-label={t('transaction.edit')}
                           >
                             ✎
                           </Link>
@@ -180,8 +195,8 @@ export default async function TransactionsPage({
         ) : (
           <div className="empty-card">
             <div>
-              <strong>Chưa có giao dịch phù hợp</strong>
-              <span>Thử thay đổi bộ lọc hoặc ghi khoản đầu tiên.</span>
+              <strong>{t('transaction.noMatches')}</strong>
+              <span>{t('transaction.noMatchesDescription')}</span>
             </div>
           </div>
         )}

@@ -1,8 +1,8 @@
 {
   "name": "moneydangminh",
-  "version": "7.1.0",
+  "version": "7.2.0",
   "private": true,
-  "description": "Minh Finance — personal finance tracker built with Next.js and MariaDB.",
+  "description": "Ví Smart — personal finance tracker built with Next.js and MariaDB.",
   "scripts": {
     "dev": "next dev",
     "build": "npm run db:generate && next build",

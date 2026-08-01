@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { deleteCategoryAction } from '@/actions/finance';
+import { useLocale } from '@/i18n/locale-provider';
 
 type DeleteCategoryFormProps = {
   categoryId: string;
@@ -9,14 +10,13 @@ type DeleteCategoryFormProps = {
 };
 
 export function DeleteCategoryForm({ categoryId, transactionCount }: DeleteCategoryFormProps) {
+  const { t } = useLocale();
   const confirmationInput = useRef<HTMLInputElement>(null);
 
   function confirmDeletion(event: React.FormEvent<HTMLFormElement>) {
     if (transactionCount === 0) return;
 
-    const accepted = window.confirm(
-      `Danh mục này đang có ${transactionCount} giao dịch. Sau khi xoá, các giao dịch đó sẽ thành “Chưa phân loại”. Bạn có chắc chắn muốn tiếp tục?`,
-    );
+    const accepted = window.confirm(t('category.deleteConfirm', { count: transactionCount }));
     if (!accepted) {
       event.preventDefault();
       return;
@@ -30,7 +30,7 @@ export function DeleteCategoryForm({ categoryId, transactionCount }: DeleteCateg
       <input type="hidden" name="id" value={categoryId} />
       <input ref={confirmationInput} type="hidden" name="confirm" value="false" />
       <button className="button-danger" type="submit">
-        Xóa
+        {t('common.delete')}
       </button>
     </form>
   );

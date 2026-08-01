@@ -10,6 +10,10 @@ import { DeleteCategoryForm } from '@/components/delete-category-form';
 import { SubmitButton } from '@/components/submit-button';
 import { requireUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getTranslations } from '@/i18n/server';
+import type { MessageKey, TranslationValues } from '@/i18n/messages';
+
+type Translate = (key: MessageKey, values?: TranslationValues) => string;
 
 export default async function CategoriesPage({
   searchParams,
@@ -17,6 +21,7 @@ export default async function CategoriesPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const user = await requireUser();
+  const { t } = await getTranslations();
   const { error } = await searchParams;
   const [categories, methods, archivedMethods] = await Promise.all([
     db.category.findMany({
@@ -42,68 +47,68 @@ export default async function CategoriesPage({
     <>
       <header className="page-head">
         <div>
-          <h1>Danh mục &amp; phương thức</h1>
-          <p className="muted">Tùy chỉnh cách bạn phân loại để xem lại dễ hơn.</p>
+          <h1>{t('category.title')}</h1>
+          <p className="muted">{t('category.description')}</p>
         </div>
       </header>
       {error ? <p className="notice">{error}</p> : null}
 
       <section className="section-grid">
         <details className="form-reveal" open={Boolean(error)}>
-          <summary>＋ Thêm danh mục</summary>
+          <summary>{t('category.addCategory')}</summary>
           <form action={createCategoryAction} className="form-card">
             <div className="form-grid">
               <div className="field">
-                <label htmlFor="category-name">Tên danh mục</label>
+                <label htmlFor="category-name">{t('category.categoryName')}</label>
                 <input
                   id="category-name"
                   name="name"
                   maxLength={100}
-                  placeholder="Ví dụ: Đi chợ"
+                  placeholder={t('category.nameExample')}
                   required
                 />
               </div>
               <div className="field">
-                <label htmlFor="category-type">Loại</label>
+                <label htmlFor="category-type">{t('category.type')}</label>
                 <select id="category-type" name="type" defaultValue="EXPENSE">
-                  <option value="INCOME">Nguồn thu</option>
-                  <option value="EXPENSE">Danh mục chi</option>
+                  <option value="INCOME">{t('category.incomeSource')}</option>
+                  <option value="EXPENSE">{t('category.expenseCategory')}</option>
                 </select>
               </div>
             </div>
             <div className="form-actions">
-              <SubmitButton>Thêm danh mục</SubmitButton>
+              <SubmitButton>{t('category.addCategory')}</SubmitButton>
             </div>
           </form>
         </details>
 
         <details className="form-reveal">
-          <summary>＋ Thêm phương thức</summary>
+          <summary>{t('category.addMethod')}</summary>
           <form action={createPaymentMethodAction} className="form-card">
             <div className="form-grid">
               <div className="field">
-                <label htmlFor="method-name">Tên phương thức</label>
+                <label htmlFor="method-name">{t('category.methodName')}</label>
                 <input
                   id="method-name"
                   name="name"
                   maxLength={100}
-                  placeholder="Ví dụ: MoMo"
+                  placeholder={t('category.methodExample')}
                   required
                 />
               </div>
               <div className="field">
-                <label htmlFor="method-type">Loại</label>
+                <label htmlFor="method-type">{t('category.type')}</label>
                 <select id="method-type" name="type" defaultValue="EWALLET">
-                  <option value="CASH">Tiền mặt</option>
-                  <option value="BANK">Ngân hàng</option>
-                  <option value="EWALLET">Ví điện tử</option>
-                  <option value="CARD">Thẻ</option>
-                  <option value="OTHER">Khác</option>
+                  <option value="CASH">{t('category.cash')}</option>
+                  <option value="BANK">{t('category.bank')}</option>
+                  <option value="EWALLET">{t('category.ewallet')}</option>
+                  <option value="CARD">{t('category.card')}</option>
+                  <option value="OTHER">{t('category.other')}</option>
                 </select>
               </div>
             </div>
             <div className="form-actions">
-              <SubmitButton>Thêm phương thức</SubmitButton>
+              <SubmitButton>{t('category.addMethod')}</SubmitButton>
             </div>
           </form>
         </details>
@@ -112,21 +117,21 @@ export default async function CategoriesPage({
       <section className="section-grid">
         <article className="card">
           <div className="card-header">
-            <h2>Nguồn thu ({income.length})</h2>
+            <h2>{t('category.incomeSources', { count: income.length })}</h2>
           </div>
-          <CategoryList categories={income} />
+          <CategoryList categories={income} t={t} />
         </article>
         <article className="card">
           <div className="card-header">
-            <h2>Danh mục chi ({expense.length})</h2>
+            <h2>{t('category.expenseCategories', { count: expense.length })}</h2>
           </div>
-          <CategoryList categories={expense} />
+          <CategoryList categories={expense} t={t} />
         </article>
       </section>
 
       <section className="card" style={{ marginTop: 16 }}>
         <div className="card-header">
-          <h2>Phương thức thanh toán ({methods.length})</h2>
+          <h2>{t('category.paymentMethods', { count: methods.length })}</h2>
         </div>
         <div className="list-stack">
           {methods.length ? (
@@ -135,34 +140,36 @@ export default async function CategoriesPage({
                 <div>
                   <strong>{method.name}</strong>
                   <span>
-                    {method._count.transactions} giao dịch đã ghi · {methodTypeLabel(method.type)}
+                    {t('category.transactionsRecorded', { count: method._count.transactions })} ·{' '}
+                    {methodTypeLabel(method.type, t)}
                   </span>
                 </div>
-                <PaymentMethodActions method={method} />
+                <PaymentMethodActions method={method} t={t} />
               </div>
             ))
           ) : (
-            <p className="muted">Chưa có phương thức nào.</p>
+            <p className="muted">{t('category.noMethods')}</p>
           )}
         </div>
       </section>
 
       {archivedMethods.length ? (
         <details className="card archived-list" style={{ marginTop: 16 }}>
-          <summary>Phương thức đã ẩn ({archivedMethods.length})</summary>
+          <summary>{t('category.archivedMethods', { count: archivedMethods.length })}</summary>
           <div className="list-stack">
             {archivedMethods.map((method) => (
               <div className="list-row" key={method.id}>
                 <div>
                   <strong>{method.name}</strong>
                   <span>
-                    {method._count.transactions} giao dịch đã ghi · {methodTypeLabel(method.type)}
+                    {t('category.transactionsRecorded', { count: method._count.transactions })} ·{' '}
+                    {methodTypeLabel(method.type, t)}
                   </span>
                 </div>
                 <form action={restorePaymentMethodAction}>
                   <input type="hidden" name="id" value={method.id} />
                   <button className="button-ghost" type="submit">
-                    Hiện lại
+                    {t('common.restore')}
                   </button>
                 </form>
               </div>
@@ -176,8 +183,10 @@ export default async function CategoriesPage({
 
 function CategoryList({
   categories,
+  t,
 }: {
   categories: Array<{ id: string; name: string; _count: { transactions: number } }>;
+  t: Translate;
 }) {
   return (
     <div className="list-stack">
@@ -186,15 +195,15 @@ function CategoryList({
           <div className="list-row" key={category.id}>
             <div>
               <strong>{category.name}</strong>
-              <span>{category._count.transactions} giao dịch</span>
+              <span>{t('category.transactions', { count: category._count.transactions })}</span>
             </div>
             <div className="list-actions">
               <details className="inline-editor">
-                <summary>Sửa</summary>
+                <summary>{t('common.edit')}</summary>
                 <form action={updateCategoryAction}>
                   <input type="hidden" name="id" value={category.id} />
                   <label className="sr-only" htmlFor={`category-name-${category.id}`}>
-                    Tên danh mục
+                    {t('category.categoryName')}
                   </label>
                   <input
                     id={`category-name-${category.id}`}
@@ -203,9 +212,7 @@ function CategoryList({
                     maxLength={100}
                     required
                   />
-                  <SubmitButton className="button-ghost" pendingText="Đang lưu…">
-                    Lưu
-                  </SubmitButton>
+                  <SubmitButton className="button-ghost">{t('common.save')}</SubmitButton>
                 </form>
               </details>
               <DeleteCategoryForm
@@ -216,21 +223,27 @@ function CategoryList({
           </div>
         ))
       ) : (
-        <p className="muted">Chưa có danh mục nào.</p>
+        <p className="muted">{t('category.noCategories')}</p>
       )}
     </div>
   );
 }
 
-function PaymentMethodActions({ method }: { method: { id: string; name: string; type: string } }) {
+function PaymentMethodActions({
+  method,
+  t,
+}: {
+  method: { id: string; name: string; type: string };
+  t: Translate;
+}) {
   return (
     <div className="list-actions">
       <details className="inline-editor">
-        <summary>Sửa</summary>
+        <summary>{t('common.edit')}</summary>
         <form action={updatePaymentMethodAction}>
           <input type="hidden" name="id" value={method.id} />
           <label className="sr-only" htmlFor={`method-name-${method.id}`}>
-            Tên phương thức
+            {t('category.methodName')}
           </label>
           <input
             id={`method-name-${method.id}`}
@@ -240,37 +253,35 @@ function PaymentMethodActions({ method }: { method: { id: string; name: string; 
             required
           />
           <label className="sr-only" htmlFor={`method-type-${method.id}`}>
-            Loại phương thức
+            {t('category.methodType')}
           </label>
           <select id={`method-type-${method.id}`} name="type" defaultValue={method.type}>
-            <option value="CASH">Tiền mặt</option>
-            <option value="BANK">Ngân hàng</option>
-            <option value="EWALLET">Ví điện tử</option>
-            <option value="CARD">Thẻ</option>
-            <option value="OTHER">Khác</option>
+            <option value="CASH">{t('category.cash')}</option>
+            <option value="BANK">{t('category.bank')}</option>
+            <option value="EWALLET">{t('category.ewallet')}</option>
+            <option value="CARD">{t('category.card')}</option>
+            <option value="OTHER">{t('category.other')}</option>
           </select>
-          <SubmitButton className="button-ghost" pendingText="Đang lưu…">
-            Lưu
-          </SubmitButton>
+          <SubmitButton className="button-ghost">{t('common.save')}</SubmitButton>
         </form>
       </details>
       <form action={archivePaymentMethodAction}>
         <input type="hidden" name="id" value={method.id} />
         <button className="button-ghost" type="submit">
-          Ẩn
+          {t('common.hide')}
         </button>
       </form>
     </div>
   );
 }
 
-function methodTypeLabel(type: string) {
+function methodTypeLabel(type: string, t: Translate) {
   const labels: Record<string, string> = {
-    CASH: 'Tiền mặt',
-    BANK: 'Ngân hàng',
-    EWALLET: 'Ví điện tử',
-    CARD: 'Thẻ',
-    OTHER: 'Khác',
+    CASH: t('category.cash'),
+    BANK: t('category.bank'),
+    EWALLET: t('category.ewallet'),
+    CARD: t('category.card'),
+    OTHER: t('category.other'),
   };
 
   return labels[type] ?? type;
