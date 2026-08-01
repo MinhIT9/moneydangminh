@@ -18,38 +18,28 @@
       visited: new Set(),
       dashboardSeen: false,
     },
-    charts = [],
-    cache = new Map();
+    charts = [];
+  let viewController = null;
   async function base() {
     if (!state.methods) state.methods = await api('/payment-methods');
     if (!state.categories) state.categories = await api('/categories');
   }
-  function cached(key, loader, ttl = 30000) {
-    const hit = cache.get(key),
-      now = Date.now();
-    if (hit && now - hit.time < ttl) return Promise.resolve(hit.data);
-    if (hit?.pending) return hit.pending;
-    const pending = loader()
-      .then((data) => {
-        cache.set(key, { data, time: Date.now() });
-        return data;
-      })
-      .catch((error) => {
-        cache.delete(key);
-        throw error;
-      });
-    cache.set(key, { ...(hit || {}), pending, time: hit?.time || 0 });
-    return pending;
-  }
   function invalidate() {
-    cache.clear();
+    http.clearCache();
     state.methods = null;
     state.categories = null;
   }
   function prefetchDashboard() {
-    cached('dashboard:' + state.month, () => api('/dashboard?month=' + state.month), 30000).catch(
-      () => {}
-    );
+    http
+      .cached('dashboard:' + state.month, () => api('/dashboard?month=' + state.month), 30000)
+      .catch(() => {});
+  }
+  function mount(markup) {
+    content.innerHTML = markup;
+    return content;
+  }
+  function listen(target, event, handler, options = {}) {
+    target?.addEventListener(event, handler, { ...options, signal: viewController?.signal });
   }
   function txSign(t) {
     return t.type === 'income' ? '＋' : '－';
@@ -131,9 +121,11 @@
       if (location.pathname !== paths[view] || options.replace)
         window.history[method]({ view }, '', paths[view]);
     }
+    viewController?.abort();
+    viewController = new AbortController();
     charts.splice(0).forEach((c) => c.destroy());
     content.dataset.view = view;
-    if (!state.visited.has(view)) content.innerHTML = '<div class="skeleton"></div>';
+    if (!state.visited.has(view)) mount(FinanceComponents.loading());
     pageTitle.textContent = titles[view];
     document
       .querySelectorAll('#nav button')
@@ -163,7 +155,9 @@
     txForm,
     txTable,
     bindTx,
-    cached,
+    cached: http.cached,
+    mount,
+    listen,
     invalidate,
     prefetchDashboard,
     paths,
@@ -178,7 +172,6 @@
   };
   quickAdd.onclick = () => txForm();
   theme.onclick = () => document.documentElement.classList.toggle('dark');
-  logout.onclick = () => api('/auth/logout', { method: 'POST' }).then(() => (location = '/login'));
   if (window.MUST_CHANGE_PASSWORD)
     ui.form(
       'Bắt buộc đổi mật khẩu',

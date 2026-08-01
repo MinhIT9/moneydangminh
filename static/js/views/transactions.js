@@ -1,6 +1,6 @@
 window.FinanceViews = window.FinanceViews || {};
 FinanceViews.transactions = async (app) => {
-  const { api, ui, state } = app,
+  const { api, ui, state, listen } = app,
     { esc, select } = ui;
   await app.base();
   const params = new URLSearchParams({ page: state.txPage, per_page: 25 }),
@@ -18,8 +18,8 @@ FinanceViews.transactions = async (app) => {
     ],
     f.type
   )}${select('fCategory', 'Danh mục', [{ id: '', name: 'Tất cả danh mục' }, ...state.categories], f.category_id)}${select('fAccount', 'Phương thức', [{ id: '', name: 'Tất cả phương thức' }, ...state.methods], f.account_id)}<button class="btn btn-outline-primary" id="applyFilter">Lọc</button></div><div class="cardx section">${app.txTable(items)}<div class="d-flex justify-content-between"><small class="muted">${result.pagination.total} giao dịch</small><div><button id="prev" class="btn btn-sm btn-light" ${state.txPage <= 1 ? 'disabled' : ''}>Trước</button> <button id="next" class="btn btn-sm btn-light" ${state.txPage >= result.pagination.pages ? 'disabled' : ''}>Sau</button></div></div></div>`;
-  addTx.onclick = () => app.txForm();
-  applyFilter.onclick = () => {
+  listen(addTx, 'click', () => app.txForm());
+  listen(applyFilter, 'click', () => {
     state.filters = {
       q: fQ.value,
       month: fMonth.value,
@@ -29,14 +29,14 @@ FinanceViews.transactions = async (app) => {
     };
     state.txPage = 1;
     app.load('transactions');
-  };
-  prev.onclick = () => {
+  });
+  listen(prev, 'click', () => {
     state.txPage--;
     app.load('transactions');
-  };
-  next.onclick = () => {
+  });
+  listen(next, 'click', () => {
     state.txPage++;
     app.load('transactions');
-  };
+  });
   app.bindTx(items);
 };

@@ -261,7 +261,7 @@ class SmokeTest(unittest.TestCase):
         for path in ("/dashboard", "/transactions", "/methods", "/debts", "/settings"):
             response = self.c.get(path)
             self.assertEqual(response.status_code, 200)
-            self.assertIn(b"app.js?v=11", response.data)
+            self.assertIn(b"app.js?v=12", response.data)
 
     def test_landing_page_is_public(self):
         for path in ("/", "/landing", "/welcome"):

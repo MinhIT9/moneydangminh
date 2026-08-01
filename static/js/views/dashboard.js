@@ -1,6 +1,6 @@
 window.FinanceViews = window.FinanceViews || {};
 FinanceViews.dashboard = async (app) => {
-  const { api, ui, state } = app,
+  const { api, ui, state, listen } = app,
     { esc, money } = ui,
     key = 'dashboard:' + state.month,
     d = await app.cached(key, () => api('/dashboard?month=' + state.month), 30000),
@@ -21,11 +21,11 @@ FinanceViews.dashboard = async (app) => {
     .join(
       ''
     )}<button class="cardx metric debt-summary" id="openDebts" type="button"><small><i class="fa-solid fa-file-invoice-dollar me-1"></i>Tổng nợ còn lại</small><strong>${money(s.remaining)}</strong><span>Xem và quản lý nợ <i class="fa-solid fa-arrow-right"></i></span></button></div><div class="chart-grid section"><div class="cardx"><h5>Thu và chi theo ngày</h5><div class="chart"><canvas id="daily"></canvas></div></div><div class="cardx"><h5>Thu nhập theo nguồn</h5><div class="chart"><canvas id="incomeChart"></canvas></div></div><div class="cardx"><h5>Chi tiêu theo danh mục</h5><div class="chart"><canvas id="expenseChart"></canvas></div></div><div class="cardx"><h5>Chi theo phương thức</h5><div class="chart"><canvas id="methodChart"></canvas></div></div></div><div class="cardx section"><h5>Giao dịch gần đây</h5>${app.txTable(d.recent)}</div>`;
-  monthPicker.onchange = () => {
+  listen(monthPicker, 'change', () => {
     state.month = monthPicker.value;
     app.load('dashboard');
-  };
-  openDebts.onclick = () => app.load('debts');
+  });
+  listen(openDebts, 'click', () => app.load('debts'));
   const options = {
     responsive: true,
     maintainAspectRatio: false,
