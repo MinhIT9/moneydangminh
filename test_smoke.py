@@ -80,7 +80,7 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(self.c.get('/debts').status_code,302)
         login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json()
         for path in ('/dashboard','/transactions','/methods','/debts','/settings'):
-            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=10',response.data)
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=11',response.data)
 
     def test_landing_page_is_public(self):
         for path in ('/','/landing','/welcome'):
