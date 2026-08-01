@@ -38,10 +38,19 @@ class SmokeTest(unittest.TestCase):
         self.c.post('/api/auth/change-password',json={'current_password':'Minh1111','new_password':'MatKhauMoi123'},headers=h)
         self.c.put('/api/admin/settings',json={'registration_enabled':True},headers=h)
         self.c.post('/api/auth/logout',headers=h)
-        self.assertEqual(self.c.post('/api/auth/register',json={'email':'user@example.com','password':'Password123'}).status_code,201)
+        registration={'email':'user@example.com','phone':'0901234567','password':'Password123','password_confirmation':'Password123'}
+        self.assertEqual(self.c.post('/api/auth/register',json=registration).status_code,201)
+        self.assertEqual(self.c.post('/api/auth/register',json={**registration,'email':'other@example.com'}).status_code,409)
         login=self.c.post('/api/auth/login',json={'email':'user@example.com','password':'Password123'}).get_json();db_headers={'X-CSRF-Token':login['data']['csrf_token']}
         self.assertEqual(len(self.c.get('/api/payment-methods').get_json()['data']),3)
         self.assertEqual(self.c.get('/api/admin/users').status_code,403)
+
+    def test_registration_requires_phone_and_password_confirmation(self):
+        login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json();headers={'X-CSRF-Token':login['data']['csrf_token']}
+        self.c.post('/api/auth/change-password',json={'current_password':'Minh1111','new_password':'MatKhauMoi123'},headers=headers)
+        self.c.put('/api/admin/settings',json={'registration_enabled':True},headers=headers)
+        missing_phone=self.c.post('/api/auth/register',json={'email':'new@example.com','password':'Password123','password_confirmation':'Password123'});self.assertEqual(missing_phone.status_code,400)
+        mismatch=self.c.post('/api/auth/register',json={'email':'new@example.com','phone':'0912345678','password':'Password123','password_confirmation':'KhacPassword123'});self.assertEqual(mismatch.status_code,400)
 
     def test_duplicate_accounts_are_merged(self):
         with self.app.app_context():
@@ -71,6 +80,18 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(self.c.get('/debts').status_code,302)
         login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json()
         for path in ('/dashboard','/transactions','/methods','/debts','/settings'):
-            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=9',response.data)
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'app.js?v=10',response.data)
+
+    def test_landing_page_is_public(self):
+        for path in ('/','/landing','/welcome'):
+            response=self.c.get(path);self.assertEqual(response.status_code,200);self.assertIn(b'Minh Finance',response.data);self.assertIn(b'/register',response.data)
+        self.assertEqual(self.c.get('/dashboard').status_code,302)
+        self.assertEqual(self.c.get('/api/dashboard').status_code,401)
+
+    def test_logout_leaves_dashboard_protected_and_landing_public(self):
+        login=self.c.post('/api/auth/login',json={'email':'root@dangminh.com','password':'Minh1111'}).get_json();headers={'X-CSRF-Token':login['data']['csrf_token']}
+        self.assertTrue(self.c.post('/api/auth/logout',headers=headers).get_json()['success'])
+        self.assertEqual(self.c.get('/dashboard').status_code,302)
+        self.assertEqual(self.c.get('/landing').status_code,200)
 
 if __name__=='__main__': unittest.main()

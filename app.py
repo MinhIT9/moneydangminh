@@ -14,13 +14,16 @@ def create_app():
         if request.method in ('POST','PUT','PATCH','DELETE') and request.path.startswith('/api/') and request.path not in ('/api/auth/login','/api/auth/register'):
             from auth import check_csrf
             if not check_csrf():return fail('Phiên bảo mật không hợp lệ, hãy tải lại trang',403)
-    @app.get('/')
     @app.get('/dashboard')
     @app.get('/transactions')
     @app.get('/methods')
     @app.get('/debts')
     @app.get('/settings')
     def index():return render_template('app.html',csrf_token=csrf_token()) if session.get('user_id') else redirect('/login')
+    @app.get('/')
+    @app.get('/landing')
+    @app.get('/welcome')
+    def landing_page():return render_template('landing.html')
     @app.get('/login')
     def login_page():return redirect('/dashboard') if session.get('user_id') else render_template('login.html')
     @app.get('/register')

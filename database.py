@@ -4,7 +4,7 @@ from flask import current_app, g
 from werkzeug.security import generate_password_hash
 
 SCHEMA = r"""
-CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user' CHECK(role IN('user','root')), is_locked INTEGER NOT NULL DEFAULT 0, must_change_password INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE, phone TEXT, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user' CHECK(role IN('user','root')), is_locked INTEGER NOT NULL DEFAULT 0, must_change_password INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, opening_balance INTEGER NOT NULL DEFAULT 0 CHECK(opening_balance>=0), is_hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN('income','expense')), UNIQUE(user_id,name,kind));
@@ -53,9 +53,14 @@ def merge_duplicate_accounts(db):
             db.execute('DELETE FROM accounts WHERE id=?',(duplicate_id,))
     db.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_user_name ON accounts(user_id,name COLLATE NOCASE)')
 
+def ensure_user_phone_column(db):
+    columns={row['name'] for row in db.execute('PRAGMA table_info(users)')}
+    if 'phone' not in columns: db.execute('ALTER TABLE users ADD COLUMN phone TEXT')
+    db.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_users_phone ON users(phone) WHERE phone IS NOT NULL')
+
 def init_db(app):
     path=Path(app.config['DATABASE']); path.parent.mkdir(parents=True,exist_ok=True)
-    db=connect(path); db.executescript(SCHEMA); merge_duplicate_accounts(db)
+    db=connect(path); db.executescript(SCHEMA); ensure_user_phone_column(db); merge_duplicate_accounts(db)
     db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('registration_enabled','0')")
     db.execute("INSERT OR IGNORE INTO users(email,password_hash,role,must_change_password) VALUES(?,?,?,1)",('root@dangminh.com',generate_password_hash('Minh1111'),'root'))
     root=db.execute("SELECT id FROM users WHERE email=?",('root@dangminh.com',)).fetchone(); seed_user(db,root['id'])

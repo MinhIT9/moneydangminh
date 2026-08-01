@@ -9,6 +9,7 @@ from services.finance_service import balance_sql, account_balance
 
 api=Blueprint('api',__name__,url_prefix='/api')
 EMAIL=re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+PHONE=re.compile(r'^0[35789]\d{8}$')
 TYPES={'income','expense','debt_payment','loan','adjustment'}
 LOGIN_ATTEMPTS={}
 VN_TZ=ZoneInfo('Asia/Ho_Chi_Minh')
@@ -28,6 +29,13 @@ def clean_text(value, name, maximum=300, required=False):
     if required and not value: raise ValueError(f'{name} là bắt buộc')
     if len(value)>maximum: raise ValueError(f'{name} tối đa {maximum} ký tự')
     return value
+
+def normalize_phone(value):
+    phone=re.sub(r'[\s.()-]','',str(value or ''))
+    if phone.startswith('+84'):phone='0'+phone[3:]
+    elif phone.startswith('84') and len(phone)==11:phone='0'+phone[2:]
+    if not PHONE.fullmatch(phone):raise ValueError('Số điện thoại Việt Nam không hợp lệ')
+    return phone
 
 def valid_date(value, name='Ngày'):
     try: date.fromisoformat(str(value)); return str(value)
@@ -63,10 +71,14 @@ def logout(): session.clear(); return ok()
 def register():
     db=get_db(); enabled=db.execute("SELECT value FROM settings WHERE key='registration_enabled'").fetchone()['value']=='1'
     if not enabled:return fail('Đăng ký đang đóng',403)
-    d=body(); email=str(d.get('email','')).strip().lower(); password=str(d.get('password',''))
+    d=body(); email=str(d.get('email','')).strip().lower(); password=str(d.get('password','')); confirmation=str(d.get('password_confirmation',''))
     if not EMAIL.match(email) or len(password)<8:return fail('Email không hợp lệ hoặc mật khẩu dưới 8 ký tự')
+    if password!=confirmation:return fail('Nhập lại mật khẩu chưa khớp')
+    try:phone=normalize_phone(d.get('phone'))
+    except ValueError as error:return fail(str(error))
+    if db.execute('SELECT 1 FROM users WHERE phone=?',(phone,)).fetchone():return fail('Số điện thoại đã được sử dụng',409)
     try:
-        cur=db.execute('INSERT INTO users(email,password_hash) VALUES(?,?)',(email,generate_password_hash(password))); seed_user(db,cur.lastrowid); db.commit()
+        cur=db.execute('INSERT INTO users(email,phone,password_hash) VALUES(?,?,?)',(email,phone,generate_password_hash(password))); seed_user(db,cur.lastrowid); db.commit()
     except sqlite3.IntegrityError:return fail('Email đã tồn tại',409)
     return ok({},201)
 @api.post('/auth/change-password')
