@@ -1,6 +1,6 @@
 {
   "name": "moneydangminh",
-  "version": "7.3.0",
+  "version": "7.3.1",
   "private": true,
   "description": "Ví Smart — personal finance tracker built with Next.js and MariaDB.",
   "scripts": {
