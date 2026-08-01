@@ -37,3 +37,21 @@ Database tự khởi tạo và không bị ghi đè. SQLite bật foreign keys, 
 ```powershell
 python -m unittest -v test_smoke.py
 ```
+
+## Format code
+
+Frontend uses Prettier and Python uses Black. Install development tools once, then run:
+
+```powershell
+npm install
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+npm run format
+.venv\Scripts\python -m black .
+```
+
+Check formatting without changing files:
+
+```powershell
+npm run format:check
+.venv\Scripts\python -m black --check .
+```

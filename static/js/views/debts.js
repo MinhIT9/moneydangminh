@@ -1,1 +1,85 @@
-window.FinanceViews=window.FinanceViews||{};FinanceViews.debts=async app=>{const{api,ui}=app,{esc,money,input,select,form,confirmAction,today}=ui,a=await api('/debts');const fields=(x={})=>input('name','Tên khoản nợ','text',x.name||'','required maxlength="100"')+input('total_amount','Tổng nợ','number',x.total_amount||'','min="1" required')+input('monthly_due','Cần trả mỗi tháng','number',x.monthly_due||0,'min="0"')+input('due_date','Ngày đến hạn','date',x.due_date||'')+select('priority','Ưu tiên',[{id:'low',name:'Thấp'},{id:'medium',name:'Vừa'},{id:'high',name:'Cao'}],x.priority||'medium');content.innerHTML=`<div class="section-head"><h3>Khoản nợ</h3><button class="btn btn-primary" id="addDebt">＋ Thêm</button></div><div class="accounts-grid">${a.map(x=>`<div class="cardx"><b>${esc(x.name)}</b><span class="pill float-end">${x.status==='paid'?'Đã trả':'Đang trả'}</span><p class="muted mt-2">Đến hạn: ${esc(x.due_date||'Không đặt')}</p><h4>${money(x.remaining_amount)}</h4><small>trên ${money(x.total_amount)} · ${x.payment_count} lần thanh toán</small><div class="mt-3">${x.remaining_amount?`<button class="btn btn-sm btn-outline-primary pay" data-id="${x.id}">Thanh toán</button>`:''} <button class="btn btn-sm btn-light edit" data-id="${x.id}">Sửa</button> <button class="btn btn-sm btn-light history" data-id="${x.id}">Lịch sử</button> <button class="btn btn-sm btn-light debt-delete" data-id="${x.id}"><i class="fa fa-trash"></i></button></div></div>`).join('')||'<div class="cardx muted">Chưa có khoản nợ.</div>'}</div>`;const reload=()=>app.load('debts',{history:false});addDebt.onclick=()=>form('Thêm khoản nợ',fields(),d=>api('/debts',{method:'POST',body:d}),reload);document.querySelectorAll('.pay').forEach(b=>b.onclick=async()=>{await app.base();form('Thanh toán nợ',select('payment_method_id','Phương thức (không bắt buộc)',[{id:'',name:'Không chọn'},...app.state.methods])+input('amount','Số tiền','number','','min="1" required')+input('paid_on','Ngày trả','date',today()),d=>api(`/debts/${b.dataset.id}/payments`,{method:'POST',body:d}),reload)});document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>{const x=a.find(v=>v.id==b.dataset.id);form('Sửa khoản nợ',fields(x),d=>api('/debts/'+x.id,{method:'PUT',body:d}),reload)});document.querySelectorAll('.history').forEach(b=>b.onclick=async()=>{const h=await api(`/debts/${b.dataset.id}/payments`);form('Lịch sử trả nợ',h.map(x=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${esc(x.paid_on)} · ${esc(x.account_name)}</span><b>${money(x.amount)}</b></div>`).join('')||'<p class="muted">Chưa có thanh toán.</p>',async()=>{})});document.querySelectorAll('.debt-delete').forEach(b=>b.onclick=()=>{const x=a.find(v=>v.id==b.dataset.id),message=x.payment_count?`Khoản “${x.name}” có ${x.payment_count} lần thanh toán. Hồ sơ nợ và lịch sử trả nợ sẽ bị xóa, nhưng các khoản tiền đã chi vẫn được giữ trong Sổ thu chi. Bạn có chắc chắn?`:`Bạn có chắc chắn muốn xóa khoản nợ “${x.name}”?`;confirmAction('Xác nhận xóa khoản nợ',message,()=>api('/debts/'+x.id,{method:'DELETE',body:{confirm:true}}),reload)})};
+window.FinanceViews = window.FinanceViews || {};
+FinanceViews.debts = async (app) => {
+  const { api, ui } = app,
+    { esc, money, input, select, form, confirmAction, today } = ui,
+    a = await api('/debts');
+  const fields = (x = {}) =>
+    input('name', 'Tên khoản nợ', 'text', x.name || '', 'required maxlength="100"') +
+    input('total_amount', 'Tổng nợ', 'number', x.total_amount || '', 'min="1" required') +
+    input('monthly_due', 'Cần trả mỗi tháng', 'number', x.monthly_due || 0, 'min="0"') +
+    input('due_date', 'Ngày đến hạn', 'date', x.due_date || '') +
+    select(
+      'priority',
+      'Ưu tiên',
+      [
+        { id: 'low', name: 'Thấp' },
+        { id: 'medium', name: 'Vừa' },
+        { id: 'high', name: 'Cao' },
+      ],
+      x.priority || 'medium'
+    );
+  content.innerHTML = `<div class="section-head"><h3>Khoản nợ</h3><button class="btn btn-primary" id="addDebt">＋ Thêm</button></div><div class="accounts-grid">${a.map((x) => `<div class="cardx"><b>${esc(x.name)}</b><span class="pill float-end">${x.status === 'paid' ? 'Đã trả' : 'Đang trả'}</span><p class="muted mt-2">Đến hạn: ${esc(x.due_date || 'Không đặt')}</p><h4>${money(x.remaining_amount)}</h4><small>trên ${money(x.total_amount)} · ${x.payment_count} lần thanh toán</small><div class="mt-3">${x.remaining_amount ? `<button class="btn btn-sm btn-outline-primary pay" data-id="${x.id}">Thanh toán</button>` : ''} <button class="btn btn-sm btn-light edit" data-id="${x.id}">Sửa</button> <button class="btn btn-sm btn-light history" data-id="${x.id}">Lịch sử</button> <button class="btn btn-sm btn-light debt-delete" data-id="${x.id}"><i class="fa fa-trash"></i></button></div></div>`).join('') || '<div class="cardx muted">Chưa có khoản nợ.</div>'}</div>`;
+  const reload = () => app.load('debts', { history: false });
+  addDebt.onclick = () =>
+    form('Thêm khoản nợ', fields(), (d) => api('/debts', { method: 'POST', body: d }), reload);
+  document.querySelectorAll('.pay').forEach(
+    (b) =>
+      (b.onclick = async () => {
+        await app.base();
+        form(
+          'Thanh toán nợ',
+          select('payment_method_id', 'Phương thức (không bắt buộc)', [
+            { id: '', name: 'Không chọn' },
+            ...app.state.methods,
+          ]) +
+            input('amount', 'Số tiền', 'number', '', 'min="1" required') +
+            input('paid_on', 'Ngày trả', 'date', today()),
+          (d) => api(`/debts/${b.dataset.id}/payments`, { method: 'POST', body: d }),
+          reload
+        );
+      })
+  );
+  document.querySelectorAll('.edit').forEach(
+    (b) =>
+      (b.onclick = () => {
+        const x = a.find((v) => v.id == b.dataset.id);
+        form(
+          'Sửa khoản nợ',
+          fields(x),
+          (d) => api('/debts/' + x.id, { method: 'PUT', body: d }),
+          reload
+        );
+      })
+  );
+  document.querySelectorAll('.history').forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const h = await api(`/debts/${b.dataset.id}/payments`);
+        form(
+          'Lịch sử trả nợ',
+          h
+            .map(
+              (x) =>
+                `<div class="d-flex justify-content-between border-bottom py-2"><span>${esc(x.paid_on)} · ${esc(x.account_name)}</span><b>${money(x.amount)}</b></div>`
+            )
+            .join('') || '<p class="muted">Chưa có thanh toán.</p>',
+          async () => {}
+        );
+      })
+  );
+  document.querySelectorAll('.debt-delete').forEach(
+    (b) =>
+      (b.onclick = () => {
+        const x = a.find((v) => v.id == b.dataset.id),
+          message = x.payment_count
+            ? `Khoản “${x.name}” có ${x.payment_count} lần thanh toán. Hồ sơ nợ và lịch sử trả nợ sẽ bị xóa, nhưng các khoản tiền đã chi vẫn được giữ trong Sổ thu chi. Bạn có chắc chắn?`
+            : `Bạn có chắc chắn muốn xóa khoản nợ “${x.name}”?`;
+        confirmAction(
+          'Xác nhận xóa khoản nợ',
+          message,
+          () => api('/debts/' + x.id, { method: 'DELETE', body: { confirm: true } }),
+          reload
+        );
+      })
+  );
+};

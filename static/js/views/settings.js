@@ -1,1 +1,56 @@
-window.FinanceViews=window.FinanceViews||{};FinanceViews.settings=async app=>{const {api,ui}=app,{esc,input,form,confirmAction,toast}=ui;content.innerHTML=`<div class="cardx"><h3>Bảo mật</h3><button class="btn btn-outline-primary" id="pass">Đổi mật khẩu</button></div><div class="cardx section"><h3>Quản trị</h3><div id="admin" class="muted">Đang kiểm tra quyền...</div></div>`;pass.onclick=()=>form('Đổi mật khẩu',input('current_password','Mật khẩu hiện tại','password','','required')+input('new_password','Mật khẩu mới','password','','minlength="8" required'),d=>api('/auth/change-password',{method:'POST',body:d}));try{const[users,s]=await Promise.all([api('/admin/users'),api('/admin/settings')]);admin.innerHTML=`<label><input type="checkbox" id="registration" ${s.registration_enabled==='1'?'checked':''}> Cho phép đăng ký</label> <button id="backup" class="btn btn-sm btn-outline-primary">Tải backup</button><table class="table mt-3"><tbody>${users.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${x.is_locked?'Đã khóa':'Hoạt động'}</td><td>${x.role!=='root'?`<button class="btn btn-sm btn-light user-lock" data-id="${x.id}" data-locked="${x.is_locked}">${x.is_locked?'Mở khóa':'Khóa'}</button> <button class="btn btn-sm btn-light user-delete" data-id="${x.id}">Xóa</button>`:''}</td></tr>`).join('')}</tbody></table>`;registration.onchange=()=>api('/admin/settings',{method:'PUT',body:{registration_enabled:registration.checked}}).then(()=>toast('Đã cập nhật'));backup.onclick=async()=>{const r=await fetch('/api/admin/backup',{headers:{'X-CSRF-Token':http.csrf}}),blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='finance_backup.db';a.click()};document.querySelectorAll('.user-lock').forEach(b=>b.onclick=()=>confirmAction('Cập nhật tài khoản',b.dataset.locked==='1'?'Mở khóa người dùng?':'Khóa người dùng?',()=>api('/admin/users/'+b.dataset.id,{method:'PATCH',body:{is_locked:b.dataset.locked!=='1'}}),()=>app.load('settings')));document.querySelectorAll('.user-delete').forEach(b=>b.onclick=()=>confirmAction('Xóa người dùng','Toàn bộ dữ liệu của người dùng sẽ bị xóa.',()=>api('/admin/users/'+b.dataset.id,{method:'DELETE'}),()=>app.load('settings')))}catch(e){admin.textContent='Chỉ tài khoản root có thể sử dụng khu vực này.'}};
+window.FinanceViews = window.FinanceViews || {};
+FinanceViews.settings = async (app) => {
+  const { api, ui } = app,
+    { esc, input, form, confirmAction, toast } = ui;
+  content.innerHTML = `<div class="cardx"><h3>Bảo mật</h3><button class="btn btn-outline-primary" id="pass">Đổi mật khẩu</button></div><div class="cardx section"><h3>Quản trị</h3><div id="admin" class="muted">Đang kiểm tra quyền...</div></div>`;
+  pass.onclick = () =>
+    form(
+      'Đổi mật khẩu',
+      input('current_password', 'Mật khẩu hiện tại', 'password', '', 'required') +
+        input('new_password', 'Mật khẩu mới', 'password', '', 'minlength="8" required'),
+      (d) => api('/auth/change-password', { method: 'POST', body: d })
+    );
+  try {
+    const [users, s] = await Promise.all([api('/admin/users'), api('/admin/settings')]);
+    admin.innerHTML = `<label><input type="checkbox" id="registration" ${s.registration_enabled === '1' ? 'checked' : ''}> Cho phép đăng ký</label> <button id="backup" class="btn btn-sm btn-outline-primary">Tải backup</button><table class="table mt-3"><tbody>${users.map((x) => `<tr><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${x.is_locked ? 'Đã khóa' : 'Hoạt động'}</td><td>${x.role !== 'root' ? `<button class="btn btn-sm btn-light user-lock" data-id="${x.id}" data-locked="${x.is_locked}">${x.is_locked ? 'Mở khóa' : 'Khóa'}</button> <button class="btn btn-sm btn-light user-delete" data-id="${x.id}">Xóa</button>` : ''}</td></tr>`).join('')}</tbody></table>`;
+    registration.onchange = () =>
+      api('/admin/settings', {
+        method: 'PUT',
+        body: { registration_enabled: registration.checked },
+      }).then(() => toast('Đã cập nhật'));
+    backup.onclick = async () => {
+      const r = await fetch('/api/admin/backup', { headers: { 'X-CSRF-Token': http.csrf } }),
+        blob = await r.blob(),
+        a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'finance_backup.db';
+      a.click();
+    };
+    document.querySelectorAll('.user-lock').forEach(
+      (b) =>
+        (b.onclick = () =>
+          confirmAction(
+            'Cập nhật tài khoản',
+            b.dataset.locked === '1' ? 'Mở khóa người dùng?' : 'Khóa người dùng?',
+            () =>
+              api('/admin/users/' + b.dataset.id, {
+                method: 'PATCH',
+                body: { is_locked: b.dataset.locked !== '1' },
+              }),
+            () => app.load('settings')
+          ))
+    );
+    document.querySelectorAll('.user-delete').forEach(
+      (b) =>
+        (b.onclick = () =>
+          confirmAction(
+            'Xóa người dùng',
+            'Toàn bộ dữ liệu của người dùng sẽ bị xóa.',
+            () => api('/admin/users/' + b.dataset.id, { method: 'DELETE' }),
+            () => app.load('settings')
+          ))
+    );
+  } catch (e) {
+    admin.textContent = 'Chỉ tài khoản root có thể sử dụng khu vực này.';
+  }
+};

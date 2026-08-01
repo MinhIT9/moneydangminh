@@ -15,53 +15,116 @@ CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY, user_id INTEGER
 CREATE INDEX IF NOT EXISTS idx_tx_user_date ON transactions(user_id,occurred_on); CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(user_id,account_id); CREATE INDEX IF NOT EXISTS idx_debt_user ON debts(user_id,status); CREATE INDEX IF NOT EXISTS idx_transfer_user_date ON transfers(user_id,occurred_on);
 """
 
-INCOMES = ['Be','Lái hộ','Tip','Bất động sản','Affiliate','Thu nhập khác']
-EXPENSES = ['Ăn uống','Tiền nhà','Thiết yếu','Xăng, điện, đổi pin','Gia đình','Mua sắm','Chi phí kiếm tiền','Chi phí khác']
+INCOMES = ["Be", "Lái hộ", "Tip", "Bất động sản", "Affiliate", "Thu nhập khác"]
+EXPENSES = [
+    "Ăn uống",
+    "Tiền nhà",
+    "Thiết yếu",
+    "Xăng, điện, đổi pin",
+    "Gia đình",
+    "Mua sắm",
+    "Chi phí kiếm tiền",
+    "Chi phí khác",
+]
+
 
 def connect(path):
-    db=sqlite3.connect(path); db.row_factory=sqlite3.Row
-    db.execute('PRAGMA foreign_keys=ON'); db.execute('PRAGMA journal_mode=WAL'); db.execute('PRAGMA busy_timeout=5000')
+    db = sqlite3.connect(path)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA foreign_keys=ON")
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA busy_timeout=5000")
     return db
 
+
 def get_db():
-    if 'db' not in g: g.db=connect(current_app.config['DATABASE'])
+    if "db" not in g:
+        g.db = connect(current_app.config["DATABASE"])
     return g.db
 
+
 def close_db(_=None):
-    db=g.pop('db',None)
-    if db: db.close()
+    db = g.pop("db", None)
+    if db:
+        db.close()
+
 
 def seed_user(db, user_id):
-    methods=('Tiền mặt','Ngân hàng','MoMo','Không xác định')
-    db.executemany('INSERT INTO accounts(user_id,name,is_hidden) SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE user_id=? AND name=? COLLATE NOCASE)',[(user_id,x,1 if x=='Không xác định' else 0,user_id,x) for x in methods])
-    db.executemany('INSERT OR IGNORE INTO categories(user_id,name,kind) VALUES(?,?,?)',[(user_id,x,'income') for x in INCOMES]+[(user_id,x,'expense') for x in EXPENSES])
+    methods = ("Tiền mặt", "Ngân hàng", "MoMo", "Không xác định")
+    db.executemany(
+        "INSERT INTO accounts(user_id,name,is_hidden) SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM accounts WHERE user_id=? AND name=? COLLATE NOCASE)",
+        [(user_id, x, 1 if x == "Không xác định" else 0, user_id, x) for x in methods],
+    )
+    db.executemany(
+        "INSERT OR IGNORE INTO categories(user_id,name,kind) VALUES(?,?,?)",
+        [(user_id, x, "income") for x in INCOMES] + [(user_id, x, "expense") for x in EXPENSES],
+    )
+
 
 def merge_duplicate_accounts(db):
     """Merge exact duplicate account names without losing balances or references."""
-    groups=db.execute('SELECT user_id,lower(trim(name)) normalized,MIN(id) keep_id FROM accounts GROUP BY user_id,lower(trim(name)) HAVING COUNT(*)>1').fetchall()
+    groups = db.execute(
+        "SELECT user_id,lower(trim(name)) normalized,MIN(id) keep_id FROM accounts GROUP BY user_id,lower(trim(name)) HAVING COUNT(*)>1"
+    ).fetchall()
     for group in groups:
-        duplicates=db.execute('SELECT id,opening_balance FROM accounts WHERE user_id=? AND lower(trim(name))=? AND id<>?',(group['user_id'],group['normalized'],group['keep_id'])).fetchall()
+        duplicates = db.execute(
+            "SELECT id,opening_balance FROM accounts WHERE user_id=? AND lower(trim(name))=? AND id<>?",
+            (group["user_id"], group["normalized"], group["keep_id"]),
+        ).fetchall()
         for duplicate in duplicates:
-            duplicate_id=duplicate['id']; keep_id=group['keep_id']
+            duplicate_id = duplicate["id"]
+            keep_id = group["keep_id"]
             # Transfers between two duplicate representations cancel out after merging.
-            db.execute('DELETE FROM transfers WHERE user_id=? AND ((from_account_id=? AND to_account_id=?) OR (from_account_id=? AND to_account_id=?))',(group['user_id'],duplicate_id,keep_id,keep_id,duplicate_id))
-            db.execute('UPDATE transactions SET account_id=? WHERE account_id=?',(keep_id,duplicate_id))
-            db.execute('UPDATE debt_payments SET account_id=? WHERE account_id=?',(keep_id,duplicate_id))
-            db.execute('UPDATE transfers SET from_account_id=? WHERE from_account_id=?',(keep_id,duplicate_id))
-            db.execute('UPDATE transfers SET to_account_id=? WHERE to_account_id=?',(keep_id,duplicate_id))
-            db.execute('UPDATE accounts SET opening_balance=opening_balance+? WHERE id=?',(duplicate['opening_balance'],keep_id))
-            db.execute('DELETE FROM accounts WHERE id=?',(duplicate_id,))
-    db.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_user_name ON accounts(user_id,name COLLATE NOCASE)')
+            db.execute(
+                "DELETE FROM transfers WHERE user_id=? AND ((from_account_id=? AND to_account_id=?) OR (from_account_id=? AND to_account_id=?))",
+                (group["user_id"], duplicate_id, keep_id, keep_id, duplicate_id),
+            )
+            db.execute(
+                "UPDATE transactions SET account_id=? WHERE account_id=?", (keep_id, duplicate_id)
+            )
+            db.execute(
+                "UPDATE debt_payments SET account_id=? WHERE account_id=?", (keep_id, duplicate_id)
+            )
+            db.execute(
+                "UPDATE transfers SET from_account_id=? WHERE from_account_id=?",
+                (keep_id, duplicate_id),
+            )
+            db.execute(
+                "UPDATE transfers SET to_account_id=? WHERE to_account_id=?",
+                (keep_id, duplicate_id),
+            )
+            db.execute(
+                "UPDATE accounts SET opening_balance=opening_balance+? WHERE id=?",
+                (duplicate["opening_balance"], keep_id),
+            )
+            db.execute("DELETE FROM accounts WHERE id=?", (duplicate_id,))
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_user_name ON accounts(user_id,name COLLATE NOCASE)"
+    )
+
 
 def ensure_user_phone_column(db):
-    columns={row['name'] for row in db.execute('PRAGMA table_info(users)')}
-    if 'phone' not in columns: db.execute('ALTER TABLE users ADD COLUMN phone TEXT')
-    db.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_users_phone ON users(phone) WHERE phone IS NOT NULL')
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
+    if "phone" not in columns:
+        db.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_phone ON users(phone) WHERE phone IS NOT NULL"
+    )
+
 
 def init_db(app):
-    path=Path(app.config['DATABASE']); path.parent.mkdir(parents=True,exist_ok=True)
-    db=connect(path); db.executescript(SCHEMA); ensure_user_phone_column(db); merge_duplicate_accounts(db)
+    path = Path(app.config["DATABASE"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    db = connect(path)
+    db.executescript(SCHEMA)
+    ensure_user_phone_column(db)
+    merge_duplicate_accounts(db)
     db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('registration_enabled','0')")
-    db.execute("INSERT OR IGNORE INTO users(email,password_hash,role,must_change_password) VALUES(?,?,?,1)",('root@dangminh.com',generate_password_hash('Minh1111'),'root'))
-    root=db.execute("SELECT id FROM users WHERE email=?",('root@dangminh.com',)).fetchone(); seed_user(db,root['id'])
-    db.commit(); db.close()
+    db.execute(
+        "INSERT OR IGNORE INTO users(email,password_hash,role,must_change_password) VALUES(?,?,?,1)",
+        ("root@dangminh.com", generate_password_hash("Minh1111"), "root"),
+    )
+    root = db.execute("SELECT id FROM users WHERE email=?", ("root@dangminh.com",)).fetchone()
+    seed_user(db, root["id"])
+    db.commit()
+    db.close()

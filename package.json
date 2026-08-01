@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "format": "prettier --write \"**/*.{css,html,js,json,md}\" --ignore-unknown",
+    "format:check": "prettier --check \"**/*.{css,html,js,json,md}\" --ignore-unknown"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

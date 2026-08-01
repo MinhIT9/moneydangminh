@@ -1,1 +1,190 @@
-(()=>{const{request:api}=http,ui=window.ui,paths={dashboard:'/dashboard',transactions:'/transactions',methods:'/methods',debts:'/debts',settings:'/settings'},pathViews=Object.fromEntries(Object.entries(paths).map(([view,path])=>[path,view])),state={month:ui.currentMonth(),txPage:1,filters:{q:'',month:ui.currentMonth(),type:'',category_id:'',account_id:''},methods:null,categories:null,visited:new Set(),dashboardSeen:false},charts=[],cache=new Map();async function base(){if(!state.methods)state.methods=await api('/payment-methods');if(!state.categories)state.categories=await api('/categories')}function cached(key,loader,ttl=30000){const hit=cache.get(key),now=Date.now();if(hit&&now-hit.time<ttl)return Promise.resolve(hit.data);if(hit?.pending)return hit.pending;const pending=loader().then(data=>{cache.set(key,{data,time:Date.now()});return data}).catch(error=>{cache.delete(key);throw error});cache.set(key,{...(hit||{}),pending,time:hit?.time||0});return pending}function invalidate(){cache.clear();state.methods=null;state.categories=null}function prefetchDashboard(){cached('dashboard:'+state.month,()=>api('/dashboard?month='+state.month),30000).catch(()=>{})}function txSign(t){return t.type==='income'?'＋':'－'}function txTable(items){const{esc,money}=ui;if(!items.length)return'<div class="empty-compact">Chưa có giao dịch phù hợp.</div>';return`<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Phương thức</th><th>Số tiền</th><th></th></tr></thead><tbody>${items.map(t=>`<tr><td>${esc(t.occurred_on)}</td><td><b>${esc(t.category_name||'Giao dịch')}</b>${t.note?`<small class="d-block muted">${esc(t.note)}</small>`:''}</td><td>${t.payment_method_name==='Không xác định'?'—':esc(t.payment_method_name||'—')}</td><td class="amount ${esc(t.type)}">${txSign(t)}${money(t.amount)}</td><td>${t.type!=='debt_payment'?`<button class="icon-btn edit-tx" data-id="${t.id}"><i class="fa fa-pen"></i></button> <button class="icon-btn del-tx" data-id="${t.id}"><i class="fa fa-trash"></i></button>`:''}</td></tr>`).join('')}</tbody></table></div>`}async function txForm(tx={}){const{select,input,form}=ui;await base();const types=[{id:'income',name:'Thu nhập'},{id:'expense',name:'Chi tiêu'}];form(tx.id?'Sửa giao dịch':'Ghi thu chi',select('type','Loại',types,tx.type||'expense')+select('category_id','Danh mục',state.categories,tx.category_id)+input('amount','Số tiền','number',tx.amount||'','min="1" step="1" required')+input('occurred_on','Ngày','date',tx.occurred_on||ui.today(),'required')+select('payment_method_id','Phương thức (không bắt buộc)',[{id:'',name:'Không chọn'},...state.methods.filter(x=>!x.is_hidden)],tx.account_id)+input('note','Ghi chú','text',tx.note||'','maxlength="300"'),d=>api('/transactions'+(tx.id?'/'+tx.id:''),{method:tx.id?'PUT':'POST',body:d}),()=>load(current,{history:false}));const type=modalForm.elements.type,cat=modalForm.elements.category_id;function sync(){[...cat.options].forEach(o=>{const c=state.categories.find(x=>String(x.id)===o.value);o.hidden=!!c&&c.kind!==type.value});if(cat.selectedOptions[0]?.hidden)cat.value=[...cat.options].find(o=>!o.hidden)?.value||''}type.onchange=sync;sync()}function bindTx(items){document.querySelectorAll('.edit-tx').forEach(b=>b.onclick=()=>txForm(items.find(x=>x.id==b.dataset.id)));document.querySelectorAll('.del-tx').forEach(b=>b.onclick=()=>ui.confirmAction('Xóa giao dịch','Bạn chắc chắn muốn xóa giao dịch này?',()=>api('/transactions/'+b.dataset.id,{method:'DELETE'}),()=>load(current,{history:false})))}const titles={dashboard:'Tổng quan',transactions:'Sổ thu chi',methods:'Phương thức',debts:'Khoản nợ',settings:'Cài đặt'};let current=pathViews[location.pathname]||'dashboard';async function load(view,options={}){if(!FinanceViews[view])view='dashboard';const same=view===current&&state.visited.has(view);current=view;if(options.history!==false){const method=options.replace?'replaceState':'pushState';if(location.pathname!==paths[view]||options.replace)window.history[method]({view},'',paths[view])}charts.splice(0).forEach(c=>c.destroy());content.dataset.view=view;if(!state.visited.has(view))content.innerHTML='<div class="skeleton"></div>';pageTitle.textContent=titles[view];document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===view));try{await FinanceViews[view](app);state.visited.add(view);if(view!=='dashboard'){const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,150));idle(prefetchDashboard)}}catch(error){content.textContent='';const box=document.createElement('div');box.className='cardx text-danger';box.textContent=error.message;content.append(box)}}const app=window.financeApp={api,ui,state,charts,base,load,txForm,txTable,bindTx,cached,invalidate,prefetchDashboard,paths};window.addEventListener('finance:data-changed',invalidate);window.addEventListener('popstate',event=>load(event.state?.view||pathViews[location.pathname]||'dashboard',{history:false}));nav.onclick=e=>{const b=e.target.closest('[data-view]');if(b&&b.dataset.view!==current)load(b.dataset.view)};quickAdd.onclick=()=>txForm();theme.onclick=()=>document.documentElement.classList.toggle('dark');logout.onclick=()=>api('/auth/logout',{method:'POST'}).then(()=>location='/login');if(window.MUST_CHANGE_PASSWORD)ui.form('Bắt buộc đổi mật khẩu',ui.input('current_password','Mật khẩu hiện tại','password','','required')+ui.input('new_password','Mật khẩu mới','password','','minlength="8" required'),d=>api('/auth/change-password',{method:'POST',body:d}).then(()=>location.reload()));else load(current,{replace:true})})();
+(() => {
+  const { request: api } = http,
+    ui = window.ui,
+    paths = {
+      dashboard: '/dashboard',
+      transactions: '/transactions',
+      methods: '/methods',
+      debts: '/debts',
+      settings: '/settings',
+    },
+    pathViews = Object.fromEntries(Object.entries(paths).map(([view, path]) => [path, view])),
+    state = {
+      month: ui.currentMonth(),
+      txPage: 1,
+      filters: { q: '', month: ui.currentMonth(), type: '', category_id: '', account_id: '' },
+      methods: null,
+      categories: null,
+      visited: new Set(),
+      dashboardSeen: false,
+    },
+    charts = [],
+    cache = new Map();
+  async function base() {
+    if (!state.methods) state.methods = await api('/payment-methods');
+    if (!state.categories) state.categories = await api('/categories');
+  }
+  function cached(key, loader, ttl = 30000) {
+    const hit = cache.get(key),
+      now = Date.now();
+    if (hit && now - hit.time < ttl) return Promise.resolve(hit.data);
+    if (hit?.pending) return hit.pending;
+    const pending = loader()
+      .then((data) => {
+        cache.set(key, { data, time: Date.now() });
+        return data;
+      })
+      .catch((error) => {
+        cache.delete(key);
+        throw error;
+      });
+    cache.set(key, { ...(hit || {}), pending, time: hit?.time || 0 });
+    return pending;
+  }
+  function invalidate() {
+    cache.clear();
+    state.methods = null;
+    state.categories = null;
+  }
+  function prefetchDashboard() {
+    cached('dashboard:' + state.month, () => api('/dashboard?month=' + state.month), 30000).catch(
+      () => {}
+    );
+  }
+  function txSign(t) {
+    return t.type === 'income' ? '＋' : '－';
+  }
+  function txTable(items) {
+    const { esc, money } = ui;
+    if (!items.length) return '<div class="empty-compact">Chưa có giao dịch phù hợp.</div>';
+    return `<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Phương thức</th><th>Số tiền</th><th></th></tr></thead><tbody>${items.map((t) => `<tr><td>${esc(t.occurred_on)}</td><td><b>${esc(t.category_name || 'Giao dịch')}</b>${t.note ? `<small class="d-block muted">${esc(t.note)}</small>` : ''}</td><td>${t.payment_method_name === 'Không xác định' ? '—' : esc(t.payment_method_name || '—')}</td><td class="amount ${esc(t.type)}">${txSign(t)}${money(t.amount)}</td><td>${t.type !== 'debt_payment' ? `<button class="icon-btn edit-tx" data-id="${t.id}"><i class="fa fa-pen"></i></button> <button class="icon-btn del-tx" data-id="${t.id}"><i class="fa fa-trash"></i></button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  async function txForm(tx = {}) {
+    const { select, input, form } = ui;
+    await base();
+    const types = [
+      { id: 'income', name: 'Thu nhập' },
+      { id: 'expense', name: 'Chi tiêu' },
+    ];
+    form(
+      tx.id ? 'Sửa giao dịch' : 'Ghi thu chi',
+      select('type', 'Loại', types, tx.type || 'expense') +
+        select('category_id', 'Danh mục', state.categories, tx.category_id) +
+        input('amount', 'Số tiền', 'number', tx.amount || '', 'min="1" step="1" required') +
+        input('occurred_on', 'Ngày', 'date', tx.occurred_on || ui.today(), 'required') +
+        select(
+          'payment_method_id',
+          'Phương thức (không bắt buộc)',
+          [{ id: '', name: 'Không chọn' }, ...state.methods.filter((x) => !x.is_hidden)],
+          tx.account_id
+        ) +
+        input('note', 'Ghi chú', 'text', tx.note || '', 'maxlength="300"'),
+      (d) =>
+        api('/transactions' + (tx.id ? '/' + tx.id : ''), {
+          method: tx.id ? 'PUT' : 'POST',
+          body: d,
+        }),
+      () => load(current, { history: false })
+    );
+    const type = modalForm.elements.type,
+      cat = modalForm.elements.category_id;
+    function sync() {
+      [...cat.options].forEach((o) => {
+        const c = state.categories.find((x) => String(x.id) === o.value);
+        o.hidden = !!c && c.kind !== type.value;
+      });
+      if (cat.selectedOptions[0]?.hidden)
+        cat.value = [...cat.options].find((o) => !o.hidden)?.value || '';
+    }
+    type.onchange = sync;
+    sync();
+  }
+  function bindTx(items) {
+    document
+      .querySelectorAll('.edit-tx')
+      .forEach((b) => (b.onclick = () => txForm(items.find((x) => x.id == b.dataset.id))));
+    document.querySelectorAll('.del-tx').forEach(
+      (b) =>
+        (b.onclick = () =>
+          ui.confirmAction(
+            'Xóa giao dịch',
+            'Bạn chắc chắn muốn xóa giao dịch này?',
+            () => api('/transactions/' + b.dataset.id, { method: 'DELETE' }),
+            () => load(current, { history: false })
+          ))
+    );
+  }
+  const titles = {
+    dashboard: 'Tổng quan',
+    transactions: 'Sổ thu chi',
+    methods: 'Phương thức',
+    debts: 'Khoản nợ',
+    settings: 'Cài đặt',
+  };
+  let current = pathViews[location.pathname] || 'dashboard';
+  async function load(view, options = {}) {
+    if (!FinanceViews[view]) view = 'dashboard';
+    const same = view === current && state.visited.has(view);
+    current = view;
+    if (options.history !== false) {
+      const method = options.replace ? 'replaceState' : 'pushState';
+      if (location.pathname !== paths[view] || options.replace)
+        window.history[method]({ view }, '', paths[view]);
+    }
+    charts.splice(0).forEach((c) => c.destroy());
+    content.dataset.view = view;
+    if (!state.visited.has(view)) content.innerHTML = '<div class="skeleton"></div>';
+    pageTitle.textContent = titles[view];
+    document
+      .querySelectorAll('#nav button')
+      .forEach((x) => x.classList.toggle('active', x.dataset.view === view));
+    try {
+      await FinanceViews[view](app);
+      state.visited.add(view);
+      if (view !== 'dashboard') {
+        const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 150));
+        idle(prefetchDashboard);
+      }
+    } catch (error) {
+      content.textContent = '';
+      const box = document.createElement('div');
+      box.className = 'cardx text-danger';
+      box.textContent = error.message;
+      content.append(box);
+    }
+  }
+  const app = (window.financeApp = {
+    api,
+    ui,
+    state,
+    charts,
+    base,
+    load,
+    txForm,
+    txTable,
+    bindTx,
+    cached,
+    invalidate,
+    prefetchDashboard,
+    paths,
+  });
+  window.addEventListener('finance:data-changed', invalidate);
+  window.addEventListener('popstate', (event) =>
+    load(event.state?.view || pathViews[location.pathname] || 'dashboard', { history: false })
+  );
+  nav.onclick = (e) => {
+    const b = e.target.closest('[data-view]');
+    if (b && b.dataset.view !== current) load(b.dataset.view);
+  };
+  quickAdd.onclick = () => txForm();
+  theme.onclick = () => document.documentElement.classList.toggle('dark');
+  logout.onclick = () => api('/auth/logout', { method: 'POST' }).then(() => (location = '/login'));
+  if (window.MUST_CHANGE_PASSWORD)
+    ui.form(
+      'Bắt buộc đổi mật khẩu',
+      ui.input('current_password', 'Mật khẩu hiện tại', 'password', '', 'required') +
+        ui.input('new_password', 'Mật khẩu mới', 'password', '', 'minlength="8" required'),
+      (d) => api('/auth/change-password', { method: 'POST', body: d }).then(() => location.reload())
+    );
+  else load(current, { replace: true });
+})();
