@@ -14,6 +14,8 @@ class Config:
     SESSION_COOKIE_SECURE = os.getenv("HTTPS", "0") == "1"
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 8
+    SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "").strip()
+    PUBLIC_URL = os.getenv("PUBLIC_URL", "").strip().rstrip("/")
 
 
 if Config.ENV == "production" and Config.SECRET_KEY == "dev-only-change-me":

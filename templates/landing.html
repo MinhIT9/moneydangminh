@@ -5,69 +5,118 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta
       name="description"
-      content="Minh Finance - sổ thu chi cá nhân đơn giản, riêng tư và dễ dùng."
+      content="Minh Finance là sổ thu chi cá nhân đơn giản, dễ dùng cho học sinh, sinh viên, gia đình trẻ và người đi làm. Ghi tiền vào, tiền ra trong vài giây."
     />
-    <title>Minh Finance · Sổ thu chi đơn giản</title>
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#675ce8" />
+    <link rel="canonical" href="{{ canonical_url }}" />
+    <link rel="alternate" hreflang="vi" href="{{ canonical_url }}" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Minh Finance" />
+    <meta property="og:title" content="Minh Finance — Sổ thu chi đơn giản mỗi ngày" />
+    <meta
+      property="og:description"
+      content="Ghi thu chi trong vài giây, nhìn rõ thói quen tiền bạc và chủ động hơn mỗi ngày."
+    />
+    <meta property="og:url" content="{{ canonical_url }}" />
+    <meta property="og:image" content="{{ site_url }}/static/img/minh-finance-og.png" />
+    <meta property="og:image:width" content="1730" />
+    <meta property="og:image:height" content="909" />
+    <meta property="og:image:alt" content="Minh Finance — Sổ thu chi đơn giản mỗi ngày" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Minh Finance — Sổ thu chi đơn giản mỗi ngày" />
+    <meta
+      name="twitter:description"
+      content="Ghi thu chi trong vài giây, nhìn rõ thói quen tiền bạc và chủ động hơn mỗi ngày."
+    />
+    <meta name="twitter:image" content="{{ site_url }}/static/img/minh-finance-og.png" />
+    <title>Minh Finance — Sổ thu chi đơn giản mỗi ngày</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/css/landing.css?v=1" />
+    <link rel="stylesheet" href="/static/css/landing.css?v=2" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Minh Finance",
+        "url": "{{ canonical_url }}",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "vi",
+        "description": "Sổ thu chi cá nhân đơn giản để ghi thu nhập, chi tiêu và theo dõi thói quen tài chính mỗi ngày."
+      }
+    </script>
   </head>
   <body class="landing-body">
     <div class="landing-glow glow-one"></div>
     <div class="landing-glow glow-two"></div>
+
     <header class="landing-header">
-      <a class="landing-brand" href="/landing"><span>M</span>Minh Finance</a>
-      <nav><a href="#features">Tính năng</a><a href="#flow">Cách dùng</a></nav>
+      <a class="landing-brand" href="/"><span>M</span>Minh Finance</a>
+      <nav aria-label="Điều hướng chính">
+        <a href="#features">Tính năng</a>
+        <a href="#for-you">Dành cho bạn</a>
+        <a href="#faq">Hỏi đáp</a>
+      </nav>
       <div class="landing-actions">
-        <a class="login-link" href="/login">Đăng nhập</a
-        ><a class="start-link" href="/register"
-          >Bắt đầu miễn phí <i class="fa-solid fa-arrow-right"></i
+        <a class="login-link" href="/login">Đăng nhập</a>
+        <a class="start-link" href="/register"
+          >Bắt đầu miễn phí <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
         ></a>
       </div>
     </header>
+
     <main>
-      <section class="hero">
+      <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <div class="eyebrow"><i class="fa-solid fa-sparkles"></i> SỔ THU CHI CÁ NHÂN</div>
-          <h1>Tiền của bạn,<br /><em>rõ ràng mỗi ngày.</em></h1>
+          <div class="eyebrow">
+            <i class="fa-solid fa-sparkles" aria-hidden="true"></i> SỔ THU CHI CÁ NHÂN
+          </div>
+          <h1 id="hero-title">Tiền của bạn,<br /><em>rõ ràng mỗi ngày.</em></h1>
           <p>
-            Ghi thu chi trong vài giây, nhìn lại thói quen tiền bạc và chủ động cho những mục tiêu
-            quan trọng.
+            Một cuốn sổ thu chi nhẹ nhàng để bạn ghi tiền vào, tiền ra và hiểu thói quen chi tiêu
+            của mình — dù bạn đang đi học, chăm con hay bận rộn đi làm.
           </p>
           <div class="hero-buttons">
             <a class="primary-cta" href="/register"
-              >Tạo sổ thu chi <i class="fa-solid fa-arrow-right"></i></a
-            ><a class="secondary-cta" href="/login"
-              ><i class="fa-solid fa-right-to-bracket"></i> Tôi đã có tài khoản</a
+              >Tạo sổ thu chi <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+            ></a>
+            <a class="secondary-cta" href="#flow"
+              ><i class="fa-solid fa-circle-play" aria-hidden="true"></i> Xem cách dùng</a
             >
           </div>
-          <div class="trust-row">
-            <span><i class="fa-solid fa-lock"></i> Dữ liệu riêng tư</span
-            ><span><i class="fa-solid fa-bolt"></i> Nhập nhanh</span
-            ><span><i class="fa-solid fa-mobile-screen"></i> Dùng tốt trên mobile</span>
+          <div class="trust-row" aria-label="Lợi ích chính">
+            <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Dữ liệu riêng tư</span>
+            <span><i class="fa-solid fa-bolt" aria-hidden="true"></i> Nhập nhanh</span>
+            <span
+              ><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> Dùng tốt trên
+              mobile</span
+            >
           </div>
         </div>
-        <div class="hero-visual" aria-label="Minh họa dashboard Minh Finance">
+
+        <div class="hero-visual" aria-label="Minh họa màn hình tổng quan Minh Finance">
           <div class="app-window">
             <div class="window-top">
               <span class="mini-logo">M</span>
               <div class="window-title">Tổng quan</div>
-              <i class="fa-solid fa-moon"></i>
+              <i class="fa-solid fa-moon" aria-hidden="true"></i>
             </div>
             <div class="window-content">
               <div class="mini-summary">
                 <div><small>THU THÁNG NÀY</small><b class="income">12.450.000 đ</b></div>
-                <i class="fa-solid fa-arrow-trend-up"></i>
+                <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>
               </div>
               <div class="mini-summary">
                 <div><small>CHI THÁNG NÀY</small><b class="expense">4.280.000 đ</b></div>
-                <i class="fa-solid fa-arrow-trend-down"></i>
+                <i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>
               </div>
               <div class="mini-chart">
                 <div class="chart-label">Thu và chi theo ngày</div>
-                <svg viewBox="0 0 300 94" role="img">
+                <svg viewBox="0 0 300 94" role="img" aria-label="Biểu đồ thu chi minh họa">
                   <path
                     d="M0 71 C25 60 31 74 55 48 S87 66 108 34 S142 52 164 25 S198 45 220 21 S260 32 300 6"
                     fill="none"
@@ -85,70 +134,203 @@
                 </svg>
               </div>
               <div class="mini-list">
-                <span><i class="fa-solid fa-mug-hot"></i> Ăn uống</span><b>- 45.000 đ</b>
+                <span><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> Ăn uống</span
+                ><b>- 45.000 đ</b>
               </div>
               <div class="mini-list">
-                <span><i class="fa-solid fa-car-side"></i> Bee</span
+                <span><i class="fa-solid fa-car-side" aria-hidden="true"></i> Bee</span
                 ><b class="income">+ 320.000 đ</b>
               </div>
             </div>
           </div>
           <div class="float-card card-income">
-            <i class="fa-solid fa-arrow-trend-up"></i>
+            <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>
             <div><small>Thu hôm nay</small><b>+ 950.000 đ</b></div>
           </div>
           <div class="float-card card-streak">
-            <i class="fa-solid fa-fire"></i>
+            <i class="fa-solid fa-fire" aria-hidden="true"></i>
             <div><small>Chuỗi ghi chép</small><b>7 ngày liên tiếp</b></div>
           </div>
         </div>
       </section>
-      <section class="feature-section" id="features">
+
+      <section class="feature-section" id="features" aria-labelledby="features-title">
         <div class="section-intro">
-          <span>ĐƠN GIẢN, ĐỦ DÙNG</span>
-          <h2>Quản lý tiền theo cách<br />nhẹ nhàng hơn.</h2>
+          <div>
+            <span>ĐƠN GIẢN, ĐỦ DÙNG</span>
+            <h2 id="features-title">Quản lý tiền theo cách<br />nhẹ nhàng hơn.</h2>
+          </div>
+          <p class="section-lead">
+            Không cần học tài chính. Chỉ cần ghi chép đều một chút mỗi ngày.
+          </p>
         </div>
         <div class="feature-grid">
           <article>
-            <div class="feature-icon purple"><i class="fa-solid fa-pen-to-square"></i></div>
+            <div class="feature-icon purple">
+              <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            </div>
             <h3>Ghi thu chi cực nhanh</h3>
-            <p>Chọn Thu hoặc Chi, nhập số tiền và lưu. Phương thức thanh toán là tùy chọn.</p>
+            <p>
+              Chọn Thu hoặc Chi, nhập số tiền và lưu. Phương thức thanh toán chỉ là thông tin tùy
+              chọn.
+            </p>
           </article>
           <article>
-            <div class="feature-icon green"><i class="fa-solid fa-chart-pie"></i></div>
+            <div class="feature-icon green">
+              <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+            </div>
             <h3>Nhìn rõ thói quen</h3>
-            <p>Biểu đồ theo ngày, nguồn thu, danh mục chi và phương thức thanh toán.</p>
+            <p>Biểu đồ theo ngày, nguồn thu và danh mục chi giúp bạn biết tiền đang đi đâu.</p>
           </article>
           <article>
-            <div class="feature-icon orange"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div class="feature-icon orange">
+              <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
+            </div>
             <h3>Chủ động khoản nợ</h3>
-            <p>Theo dõi khoản cần trả, lịch sử thanh toán và tiến độ trả nợ của bạn.</p>
+            <p>Theo dõi khoản cần trả, lịch sử thanh toán và tiến độ trả nợ của riêng bạn.</p>
           </article>
         </div>
       </section>
-      <section class="flow-section" id="flow">
+
+      <section class="audience-section" id="for-you" aria-labelledby="audience-title">
+        <div class="section-intro audience-intro">
+          <div>
+            <span>DÀNH CHO CUỘC SỐNG THẬT</span>
+            <h2 id="audience-title">Bất cứ ai cũng có thể<br />bắt đầu từ hôm nay.</h2>
+          </div>
+          <p class="section-lead">
+            Không ép bạn theo mẫu chi tiêu nào — chỉ giúp bạn nhìn rõ dòng tiền của chính mình.
+          </p>
+        </div>
+        <div class="audience-grid">
+          <article class="audience-card student-card">
+            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+            <h3>Học sinh, sinh viên</h3>
+            <p>
+              Ghi tiền ăn, tiền học, tiền trọ, đi chơi và khoản làm thêm để tháng nào cũng chủ động
+              hơn.
+            </p>
+            <span>Ví dụ: tiền cơm · học phí · cà phê</span>
+          </article>
+          <article class="audience-card family-card">
+            <i class="fa-solid fa-heart" aria-hidden="true"></i>
+            <h3>Mẹ bỉm, gia đình trẻ</h3>
+            <p>
+              Theo dõi chi tiêu hằng ngày cho chợ búa, sữa bỉm, điện nước và những khoản nhỏ dễ
+              quên.
+            </p>
+            <span>Ví dụ: đi chợ · sữa bỉm · sinh hoạt</span>
+          </article>
+          <article class="audience-card work-card">
+            <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+            <h3>Người đi làm, làm tự do</h3>
+            <p>
+              Gom thu nhập cuối ngày từ lương, Bee, tip, lái hộ hoặc việc làm thêm vào một cuốn sổ
+              rõ ràng.
+            </p>
+            <span>Ví dụ: lương · Bee · tip · lái hộ</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="flow-section" id="flow" aria-labelledby="flow-title">
         <div class="flow-card">
           <div>
             <span>CHỈ 3 BƯỚC</span>
-            <h2>Ghi chép hôm nay,<br />nhẹ đầu ngày mai.</h2>
+            <h2 id="flow-title">Ghi chép hôm nay,<br />nhẹ đầu ngày mai.</h2>
           </div>
           <ol>
-            <li><b>01</b><span>Ghi tổng thu nhập cuối ngày: Bee, Tip, Lái hộ...</span></li>
-            <li><b>02</b><span>Ghi các khoản chi tiêu cần nhớ.</span></li>
-            <li><b>03</b><span>Xem tổng quan để điều chỉnh thói quen.</span></li>
+            <li>
+              <b>01</b
+              ><span>Ghi tổng thu nhập cuối ngày: Bee, tip, lái hộ, lương hoặc việc làm thêm.</span>
+            </li>
+            <li>
+              <b>02</b
+              ><span>Ghi các khoản chi tiêu cần nhớ: tiền mặt, chuyển khoản hoặc ví điện tử.</span>
+            </li>
+            <li>
+              <b>03</b
+              ><span>Xem tổng quan cuối tháng để điều chỉnh thói quen theo cách của bạn.</span>
+            </li>
           </ol>
         </div>
       </section>
-      <section class="final-cta">
+
+      <section class="faq-section" id="faq" aria-labelledby="faq-title">
+        <div class="faq-intro">
+          <span>HỎI ĐÁP NHANH</span>
+          <h2 id="faq-title">Bắt đầu mà không cần<br />biết gì về tài chính.</h2>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>
+              Minh Finance có phù hợp nếu tôi chỉ muốn ghi chép đơn giản không?<i
+                class="fa-solid fa-plus"
+                aria-hidden="true"
+              ></i>
+            </summary>
+            <p>
+              Có. Bạn chỉ cần ghi Thu hoặc Chi, số tiền, ngày phát sinh và một ghi chú ngắn nếu cần.
+              Danh mục và phương thức thanh toán là công cụ hỗ trợ để nhìn lại dễ hơn.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Tôi có phải liên kết ngân hàng hoặc ví điện tử không?<i
+                class="fa-solid fa-plus"
+                aria-hidden="true"
+              ></i>
+            </summary>
+            <p>
+              Không. Minh Finance là sổ ghi chép cá nhân. Bạn chủ động nhập tổng thu, khoản chi và
+              có thể ghi phương thức như tiền mặt, chuyển khoản hoặc MoMo để đối chiếu.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Dữ liệu thu chi của tôi có riêng tư không?<i
+                class="fa-solid fa-plus"
+                aria-hidden="true"
+              ></i>
+            </summary>
+            <p>
+              Dữ liệu được gắn với tài khoản đăng nhập của bạn. Hãy dùng mật khẩu mạnh, không chia
+              sẻ tài khoản và xem chính sách riêng tư trước khi sử dụng.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Tôi có thể dùng trên điện thoại không?<i
+                class="fa-solid fa-plus"
+                aria-hidden="true"
+              ></i>
+            </summary>
+            <p>
+              Có. Giao diện được thiết kế để dùng thoải mái từ màn hình desktop đến điện thoại nhỏ,
+              phù hợp để ghi nhanh bất cứ khi nào phát sinh.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
         <div>
           <span>MINH FINANCE</span>
-          <h2>Bắt đầu hiểu tiền<br />của chính bạn.</h2>
+          <h2 id="cta-title">Bắt đầu hiểu tiền<br />của chính bạn.</h2>
         </div>
         <a class="primary-cta light" href="/register"
-          >Tạo tài khoản miễn phí <i class="fa-solid fa-arrow-right"></i
+          >Tạo tài khoản miễn phí <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
         ></a>
       </section>
     </main>
-    <footer><span>© 2026 Minh Finance</span><a href="/login">Đăng nhập</a></footer>
+
+    <footer>
+      <span>© 2026 Minh Finance</span>
+      <div class="footer-links">
+        <a href="/privacy">Chính sách riêng tư</a>
+        <a href="/support">Hỗ trợ</a>
+        <a href="/login">Đăng nhập</a>
+      </div>
+    </footer>
   </body>
 </html>

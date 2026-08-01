@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, render_template, redirect, session, request
+from flask import Flask, Response, render_template, redirect, request, session
 from config import Config
 from database import init_db, close_db
 from auth import csrf_token, fail
@@ -12,6 +12,10 @@ def create_app():
     init_db(app)
     app.teardown_appcontext(close_db)
     app.register_blueprint(api)
+
+    def public_url(path=""):
+        base = app.config["PUBLIC_URL"] or request.url_root.rstrip("/")
+        return f"{base}{path}"
 
     @app.before_request
     def csrf_guard():
@@ -47,7 +51,56 @@ def create_app():
     @app.get("/landing")
     @app.get("/welcome")
     def landing_page():
-        return render_template("landing.html")
+        return render_template("landing.html", canonical_url=public_url("/"), site_url=public_url())
+
+    @app.get("/privacy")
+    def privacy_page():
+        return render_template(
+            "privacy.html",
+            canonical_url=public_url("/privacy"),
+            site_url=public_url(),
+            support_email=app.config["SUPPORT_EMAIL"],
+        )
+
+    @app.get("/support")
+    def support_page():
+        return render_template(
+            "support.html",
+            canonical_url=public_url("/support"),
+            site_url=public_url(),
+            support_email=app.config["SUPPORT_EMAIL"],
+        )
+
+    @app.get("/robots.txt")
+    def robots():
+        sitemap_url = public_url("/sitemap.xml")
+        content = f"""User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /transactions
+Disallow: /methods
+Disallow: /debts
+Disallow: /settings
+Disallow: /login
+Disallow: /register
+
+Sitemap: {sitemap_url}
+"""
+        return Response(content, mimetype="text/plain")
+
+    @app.get("/sitemap.xml")
+    def sitemap():
+        pages = [
+            public_url("/"),
+            public_url("/privacy"),
+            public_url("/support"),
+        ]
+        items = "".join(f"<url><loc>{page}</loc></url>" for page in pages)
+        return Response(
+            f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>',
+            mimetype="application/xml",
+        )
 
     @app.get("/login")
     def login_page():
@@ -80,6 +133,16 @@ def create_app():
         res.headers["X-Content-Type-Options"] = "nosniff"
         res.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         res.headers["X-Frame-Options"] = "DENY"
+        if request.path.startswith("/api/") or request.path in {
+            "/dashboard",
+            "/transactions",
+            "/methods",
+            "/debts",
+            "/settings",
+            "/login",
+            "/register",
+        }:
+            res.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return res
 
     return app

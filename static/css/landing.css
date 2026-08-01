@@ -424,6 +424,76 @@ main {
   color: var(--muted);
   font-size: 14px;
 }
+
+.section-lead {
+  max-width: 360px;
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.audience-section {
+  padding: 54px 0 78px;
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 17px;
+  margin-top: 32px;
+}
+
+.audience-card {
+  min-height: 244px;
+  padding: 27px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+}
+
+.audience-card > i {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  font-size: 20px;
+}
+
+.student-card > i {
+  background: #eeeaff;
+  color: var(--purple);
+}
+
+.family-card > i {
+  background: #ffe9ee;
+  color: #e76882;
+}
+
+.work-card > i {
+  background: #e5f8f0;
+  color: var(--green);
+}
+
+.audience-card h3 {
+  margin: 19px 0 7px;
+  font-size: 18px;
+}
+
+.audience-card p {
+  min-height: 66px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.audience-card span {
+  display: block;
+  margin-top: 17px;
+  color: #727d95;
+  font-size: 11px;
+  font-weight: 750;
+}
 .flow-section {
   padding: 45px 0 85px;
 }
@@ -471,6 +541,67 @@ main {
   background: rgba(255, 255, 255, 0.12);
   font-size: 11px;
 }
+
+.faq-section {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr;
+  gap: 70px;
+  padding: 18px 0 88px;
+}
+
+.faq-intro > span {
+  color: var(--purple);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+
+.faq-intro h2 {
+  margin: 9px 0 0;
+  font-size: clamp(30px, 3.3vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -2px;
+}
+
+.faq-list {
+  border-top: 1px solid var(--line);
+}
+
+.faq-list details {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 0;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+  list-style: none;
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list summary i {
+  color: var(--purple);
+  transition: transform 0.2s;
+}
+
+.faq-list details[open] summary i {
+  transform: rotate(45deg);
+}
+
+.faq-list p {
+  margin: -3px 35px 21px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
 .final-cta {
   display: flex;
   align-items: center;
@@ -495,6 +626,12 @@ footer {
   border-top: 1px solid var(--line);
   color: #8791a8;
   font-size: 12px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
 }
 footer a {
   color: var(--muted);
@@ -526,6 +663,13 @@ footer a {
   }
   .feature-grid {
     grid-template-columns: 1fr;
+  }
+  .audience-grid {
+    grid-template-columns: 1fr;
+  }
+  .faq-section {
+    grid-template-columns: 1fr;
+    gap: 30px;
   }
   .flow-card {
     grid-template-columns: 1fr;
@@ -604,8 +748,31 @@ footer a {
   .feature-grid {
     margin-top: 22px;
   }
+  .audience-section {
+    padding: 34px 0 50px;
+  }
+  .audience-grid {
+    margin-top: 22px;
+  }
+  .audience-card {
+    min-height: 0;
+    padding: 24px;
+  }
+  .audience-card p {
+    min-height: 0;
+  }
   .flow-section {
     padding: 22px 0 52px;
+  }
+  .faq-section {
+    gap: 22px;
+    padding: 10px 0 52px;
+  }
+  .faq-list summary {
+    font-size: 14px;
+  }
+  .faq-list p {
+    margin-right: 0;
   }
   .flow-card {
     padding: 28px 23px;
@@ -618,6 +785,9 @@ footer a {
   }
   footer {
     width: calc(100% - 26px);
+    align-items: flex-start;
+    gap: 16px;
+    flex-direction: column;
   }
 }
 @media (prefers-reduced-motion: reduce) {

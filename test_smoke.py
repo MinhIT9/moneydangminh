@@ -10,7 +10,7 @@ class SmokeTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.app = create_app()
         self.app.config.update(
-            TESTING=True, DATABASE=Path(self.tmp.name) / "test.db", SECRET_KEY="test"
+            TESTING=True, DATABASE=Path(self.tmp.name) / "test.db", SECRET_KEY="test", PUBLIC_URL=""
         )
         init_db(self.app)
         self.c = self.app.test_client()
@@ -271,6 +271,29 @@ class SmokeTest(unittest.TestCase):
             self.assertIn(b"/register", response.data)
         self.assertEqual(self.c.get("/dashboard").status_code, 302)
         self.assertEqual(self.c.get("/api/dashboard").status_code, 401)
+
+    def test_public_seo_pages_and_private_noindex(self):
+        landing = self.c.get("/")
+        self.assertIn(b"og:image", landing.data)
+        self.assertIn(b"minh-finance-og.png", landing.data)
+        self.assertIn(b'<link rel="canonical" href="http://localhost/"', landing.data)
+        self.assertIn(b"/privacy", landing.data)
+        self.assertIn(b"/support", landing.data)
+        self.assertEqual(self.c.get("/privacy").status_code, 200)
+        self.assertEqual(self.c.get("/support").status_code, 200)
+        robots = self.c.get("/robots.txt")
+        self.assertEqual(robots.status_code, 200)
+        self.assertIn(b"Disallow: /api/", robots.data)
+        self.assertIn(b"Sitemap:", robots.data)
+        sitemap = self.c.get("/sitemap.xml")
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertIn(b"/privacy", sitemap.data)
+        self.assertEqual(
+            self.c.get("/login").headers["X-Robots-Tag"], "noindex, nofollow, noarchive"
+        )
+        self.assertEqual(
+            self.c.get("/api/dashboard").headers["X-Robots-Tag"], "noindex, nofollow, noarchive"
+        )
 
     def test_logout_leaves_dashboard_protected_and_landing_public(self):
         login = self.c.post(
