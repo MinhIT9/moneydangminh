@@ -29,6 +29,7 @@ export function AppNavigation({
         <Link
           key={link.href}
           href={link.href}
+          prefetch
           aria-current={pathname === link.href ? 'page' : undefined}
         >
           {!mobile ? <span aria-hidden="true">{link.icon}</span> : null}

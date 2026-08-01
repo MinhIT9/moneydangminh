@@ -1,8 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
+import { registrationSettingTag } from '@/lib/app-settings';
 import { db } from '@/lib/db';
 import { formText } from '@/lib/validation';
 
@@ -26,6 +27,7 @@ export async function setRegistrationAction(formData: FormData) {
     create: { key: registrationSettingKey, value: String(registrationOpen) },
     update: { value: String(registrationOpen) },
   });
+  updateTag(registrationSettingTag);
   refreshAdmin();
   redirect('/admin');
 }

@@ -7,8 +7,6 @@ import { LocaleProvider } from '@/i18n/locale-provider';
 import { requireUser } from '@/lib/auth';
 import { getTranslations } from '@/i18n/server';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
@@ -21,7 +19,7 @@ export default async function PrivateLayout({ children }: Readonly<{ children: R
     <LocaleProvider key={locale} initialLocale={locale}>
       <div className="app-shell">
         <aside className="sidebar">
-          <Link className="brand" href="/dashboard">
+          <Link className="brand" href="/dashboard" prefetch>
             <span className="brand-mark">V</span>
             {t('brand.name')}
           </Link>
@@ -38,7 +36,7 @@ export default async function PrivateLayout({ children }: Readonly<{ children: R
         </aside>
         <div>
           <header className="mobile-header">
-            <Link className="brand" href="/dashboard">
+            <Link className="brand" href="/dashboard" prefetch>
               <span className="brand-mark">V</span>
               {t('brand.name')}
             </Link>

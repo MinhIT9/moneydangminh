@@ -114,10 +114,10 @@ export default async function HomePage() {
 
           <div className="landing__header-actions">
             <LanguageSwitcher className="landing__language" />
-            <Link className="landing__login" href="/login">
+            <Link className="landing__login" href="/login" prefetch>
               {copy.login}
             </Link>
-            <Link className="landing__button landing__button--small" href="/register">
+            <Link className="landing__button landing__button--small" href="/register" prefetch>
               {copy.startFree}
             </Link>
           </div>
@@ -129,7 +129,7 @@ export default async function HomePage() {
             <h1 id="hero-title">{copy.hero.title}</h1>
             <p className="landing__lead">{copy.hero.description}</p>
             <div className="landing__hero-actions">
-              <Link className="landing__button" href="/register">
+              <Link className="landing__button" href="/register" prefetch>
                 {copy.hero.primaryAction}
                 <span aria-hidden="true">→</span>
               </Link>
@@ -298,7 +298,7 @@ export default async function HomePage() {
           <p className="landing__eyebrow">{copy.cta.eyebrow}</p>
           <h2 id="cta-title">{copy.cta.title}</h2>
           <p>{copy.cta.description}</p>
-          <Link className="landing__button landing__button--light" href="/register">
+          <Link className="landing__button landing__button--light" href="/register" prefetch>
             {copy.cta.action}
             <span aria-hidden="true">→</span>
           </Link>
@@ -315,7 +315,9 @@ export default async function HomePage() {
           <div>
             <Link href="/privacy">{copy.footer.privacy}</Link>
             <Link href="/support">{copy.footer.support}</Link>
-            <Link href="/login">{copy.login}</Link>
+            <Link href="/login" prefetch>
+              {copy.login}
+            </Link>
           </div>
         </footer>
       </main>

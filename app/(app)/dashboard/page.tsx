@@ -107,7 +107,7 @@ export default async function DashboardPage({
           <small>{t('dashboard.net')}</small>
           <strong className="amount-net">{formatVnd(income - expense)}</strong>
         </article>
-        <Link className="metric-card" href="/debts">
+        <Link className="metric-card" href="/debts" prefetch>
           <small>{t('dashboard.remainingDebt')}</small>
           <strong>{formatVnd(remainingDebt)}</strong>
         </Link>
@@ -117,7 +117,7 @@ export default async function DashboardPage({
         <article className="table-card">
           <div className="card-header">
             <h2>{t('dashboard.recentTransactions')}</h2>
-            <Link className="muted" href={`/transactions?month=${month}`}>
+            <Link className="muted" href={`/transactions?month=${month}`} prefetch>
               {t('dashboard.viewAll')}
             </Link>
           </div>

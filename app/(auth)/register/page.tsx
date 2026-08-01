@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { registerAction } from '@/actions/auth';
 import { SubmitButton } from '@/components/submit-button';
-import { db } from '@/lib/db';
+import { isRegistrationOpen } from '@/lib/app-settings';
 import { getTranslations } from '@/i18n/server';
 
 export const metadata: Metadata = {
@@ -17,17 +17,14 @@ export default async function RegisterPage({
 }) {
   const { error } = await searchParams;
   const { t } = await getTranslations();
-  const registrationSetting = await db.appSetting.findUnique({
-    where: { key: 'registration_open' },
-  });
-  const registrationOpen = registrationSetting?.value !== 'false';
+  const registrationOpen = await isRegistrationOpen();
 
   if (!registrationOpen) {
     return (
       <>
         <h1>{t('auth.registrationClosed')}</h1>
         <p className="muted">{t('auth.registrationClosedDescription')}</p>
-        <Link className="button" href="/login">
+        <Link className="button" href="/login" prefetch>
           {t('auth.goToLogin')}
         </Link>
       </>
@@ -85,7 +82,10 @@ export default async function RegisterPage({
         </SubmitButton>
       </form>
       <p className="auth-footer">
-        {t('auth.haveAccount')} <Link href="/login">{t('auth.login')}</Link>
+        {t('auth.haveAccount')}{' '}
+        <Link href="/login" prefetch>
+          {t('auth.login')}
+        </Link>
       </p>
     </>
   );

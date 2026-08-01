@@ -40,7 +40,10 @@ export default async function LoginPage({
         <SubmitButton pendingText={t('auth.loggingIn')}>{t('auth.login')}</SubmitButton>
       </form>
       <p className="auth-footer">
-        {t('auth.noAccount')} <Link href="/register">{t('auth.register')}</Link>
+        {t('auth.noAccount')}{' '}
+        <Link href="/register" prefetch>
+          {t('auth.register')}
+        </Link>
       </p>
     </>
   );
