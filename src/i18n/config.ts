@@ -3,7 +3,7 @@ export const locales = ['vi', 'en'] as const;
 export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = 'vi';
-export const localeCookieName = 'vi_smart_locale';
+export const localeCookieName = 'heo_xinh_locale';
 
 export const localeOptions: ReadonlyArray<{ value: Locale; label: string; shortLabel: string }> = [
   { value: 'vi', label: 'Tiếng Việt', shortLabel: 'VN' },

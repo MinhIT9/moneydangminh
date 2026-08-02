@@ -812,6 +812,18 @@
   z-index: 1;
   width: 100%;
 }
+.game-action-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+}
+.game-action-error {
+  margin: 0;
+  color: #e44761;
+  font-size: 10px;
+  line-height: 1.4;
+}
 
 .room-code-card {
   display: grid;
@@ -1039,6 +1051,47 @@
   display: flex;
   gap: 5px;
 }
+.room-live-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.room-live-controls > button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #ded7ee;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--game-purple);
+  cursor: pointer;
+  font-weight: 800;
+}
+.room-live-controls > button.is-danger {
+  border-color: #ffd0d8;
+  color: #e44761;
+}
+.room-live-controls > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+.room-join-gate {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f5efff, #fff9f0);
+  text-align: center;
+}
+.room-join-gate h2,
+.room-join-gate p {
+  margin: 0;
+}
+.room-join-gate p {
+  color: #7e8397;
+  font-size: 12px;
+}
 .room-chat-preview input,
 .match-chat input {
   min-width: 0;
@@ -1110,6 +1163,78 @@
   display: grid;
   align-content: start;
   gap: 4px;
+}
+.friend-search-results,
+.friend-requests {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px;
+  border: 1px solid #e3dcf5;
+  border-radius: 12px;
+  background: #fcfaff;
+}
+.friend-search-results > div,
+.friend-requests > div:not(.friends-list-title) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.friend-requests > div:not(.friends-list-title) {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+.friend-search-results strong,
+.friend-search-results small {
+  display: block;
+}
+.friend-search-results small {
+  color: #8a8fa2;
+  font-size: 9px;
+}
+.friend-search-results button,
+.friend-requests button {
+  padding: 6px 8px;
+  border: 1px solid #d9ccfa;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--game-purple);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+.friends-conversation-empty {
+  display: grid;
+  min-height: 500px;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 30px;
+  color: #7f849a;
+  text-align: center;
+}
+.friends-conversation-empty > span {
+  font-size: 50px;
+}
+.friends-conversation-empty h2,
+.friends-conversation-empty p {
+  margin: 0;
+}
+.friends-conversation > header > a {
+  padding: 8px 10px;
+  border: 1px solid #ddcffc;
+  border-radius: 9px;
+  color: var(--game-purple);
+  font-size: 10px;
+  text-decoration: none;
+}
+.conversation-tools a {
+  padding: 7px;
+  border: 1px solid #e5e2ec;
+  border-radius: 8px;
+  color: #6f758d;
+  font-size: 10px;
+  text-decoration: none;
 }
 .friends-directory-list > button {
   display: grid;

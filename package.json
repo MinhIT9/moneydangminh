@@ -1,6 +1,6 @@
 {
   "name": "moneydangminh",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "private": true,
   "description": "Heo Xinh — saving, personal finance, and casual games built with Next.js and MariaDB.",
   "scripts": {
@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "check": "npm run lint && npm run typecheck && npm run format:check",
     "test:caro": "tsx scripts/verify-caro-rules.ts",
+    "test:game-backend": "node --conditions=react-server --import tsx scripts/verify-game-backend.ts",
     "db:generate": "node scripts/prisma-generate.mjs",
     "db:migrate": "prisma migrate dev && npm run db:generate",
     "db:deploy": "prisma migrate deploy",
@@ -35,6 +36,7 @@
     "next": "^16.2.12",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

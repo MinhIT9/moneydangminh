@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  offerCaroDrawAction,
+  playCaroMoveAction,
+  respondCaroDrawAction,
+  sendMatchMessageAction,
+  surrenderCaroMatchAction,
+} from '@/actions/game';
 import {
   CARO_BOARD_SIZE,
   caroCoordinate,
@@ -9,151 +17,159 @@ import {
   type CaroMark,
 } from '@/lib/caro';
 
-type Move = { index: number; mark: CaroMark };
-type ChatMessage = { id: number; mine: boolean; text: string; time: string };
+export type CaroMatchState = {
+  id: string;
+  status: 'ACTIVE' | 'X_WON' | 'O_WON' | 'DRAW' | 'CANCELLED';
+  mode: 'RANKED' | 'FRIENDLY';
+  resultReason: string | null;
+  currentTurn: CaroMark;
+  turnStartedAt: string;
+  turnSeconds: number;
+  playerXChange: number | null;
+  playerOChange: number | null;
+  drawOfferedById: string | null;
+  currentUserId: string;
+  playerX: MatchPlayer;
+  playerO: MatchPlayer;
+  moves: Array<{ id: string; moveNumber: number; mark: CaroMark; row: number; column: number }>;
+  messages: Array<{
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    createdAt: string;
+  }>;
+};
 
-const initialMoves: Move[] = [
-  { index: 9 * CARO_BOARD_SIZE + 9, mark: 'X' },
-  { index: 9 * CARO_BOARD_SIZE + 10, mark: 'O' },
-  { index: 8 * CARO_BOARD_SIZE + 10, mark: 'X' },
-  { index: 10 * CARO_BOARD_SIZE + 9, mark: 'O' },
-  { index: 8 * CARO_BOARD_SIZE + 9, mark: 'X' },
-  { index: 10 * CARO_BOARD_SIZE + 10, mark: 'O' },
-];
+type MatchPlayer = { id: string; name: string; avatar: string; rating: number; hearts: number };
 
-function createInitialBoard() {
-  const board: CaroCell[] = Array.from({ length: CARO_BOARD_SIZE ** 2 }, () => null);
-  initialMoves.forEach((move) => (board[move.index] = move.mark));
-  return board;
-}
-
-export function CaroMatch({ playerName }: { playerName: string }) {
-  const [board, setBoard] = useState<CaroCell[]>(createInitialBoard);
-  const [moves, setMoves] = useState<Move[]>(initialMoves);
-  const [turn, setTurn] = useState<CaroMark>('X');
-  const [winner, setWinner] = useState<CaroMark | null>(null);
-  const [winningLine, setWinningLine] = useState<number[]>([]);
-  const [draw, setDraw] = useState(false);
-  const [turnSeconds, setTurnSeconds] = useState(45);
-  const [notice, setNotice] = useState('Đến lượt bạn đặt quân X');
+export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [seconds, setSeconds] = useState(initialState.turnSeconds);
+  const [error, setError] = useState('');
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 1, mine: true, text: 'Chúc bạn may mắn! 🍀', time: '14:32' },
-    { id: 2, mine: false, text: 'Cảm ơn bạn, cùng cố gắng nhé! 💪', time: '14:33' },
-  ]);
+  const active = initialState.status === 'ACTIVE';
+  const myMark: CaroMark = initialState.playerX.id === initialState.currentUserId ? 'X' : 'O';
+  const myTurn = active && initialState.currentTurn === myMark;
 
   useEffect(() => {
-    if (winner || draw) return;
+    const updateClock = () =>
+      setSeconds(
+        Math.max(
+          0,
+          initialState.turnSeconds -
+            Math.floor((Date.now() - new Date(initialState.turnStartedAt).getTime()) / 1000),
+        ),
+      );
+    updateClock();
+    const clock = window.setInterval(updateClock, 1000);
+    const polling = window.setInterval(() => router.refresh(), 2500);
+    return () => {
+      window.clearInterval(clock);
+      window.clearInterval(polling);
+    };
+  }, [initialState.turnSeconds, initialState.turnStartedAt, router]);
 
-    const timer = window.setInterval(() => {
-      setTurnSeconds((seconds) => {
-        if (seconds > 1) return seconds - 1;
-        const nextTurn = turn === 'X' ? 'O' : 'X';
-        setTurn(nextTurn);
-        setNotice(`Hết giờ, chuyển lượt cho quân ${nextTurn}`);
-        return 45;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [draw, turn, winner]);
-
-  const latestIndex = moves.at(-1)?.index ?? null;
-  const winningSet = useMemo(() => new Set(winningLine), [winningLine]);
+  const board = useMemo(() => {
+    const cells: CaroCell[] = Array.from({ length: CARO_BOARD_SIZE ** 2 }, () => null);
+    for (const move of initialState.moves)
+      cells[move.row * CARO_BOARD_SIZE + move.column] = move.mark;
+    return cells;
+  }, [initialState.moves]);
+  const latestMove = initialState.moves.at(-1);
+  const latestIndex = latestMove ? latestMove.row * CARO_BOARD_SIZE + latestMove.column : null;
+  const winningSet = useMemo(
+    () =>
+      new Set(
+        latestIndex !== null && initialState.resultReason === 'FIVE_IN_ROW'
+          ? findCaroWinningLine(board, latestIndex)
+          : [],
+      ),
+    [board, initialState.resultReason, latestIndex],
+  );
 
   function play(index: number) {
-    if (board[index] || winner || draw) return;
-
-    const nextBoard = [...board];
-    nextBoard[index] = turn;
-    const nextMoves = [...moves, { index, mark: turn }];
-    const line = findCaroWinningLine(nextBoard, index);
-
-    setBoard(nextBoard);
-    setMoves(nextMoves);
-    setTurnSeconds(45);
-
-    if (line.length) {
-      setWinner(turn);
-      setWinningLine(line);
-      setNotice(
-        `${turn === 'X' ? playerName : 'Nam Anh'} thắng với ${line.length} quân liên tiếp!`,
-      );
-      return;
-    }
-
-    if (nextMoves.length === CARO_BOARD_SIZE ** 2) {
-      setDraw(true);
-      setNotice('Bàn cờ đã đầy — trận đấu hòa.');
-      return;
-    }
-
-    const nextTurn = turn === 'X' ? 'O' : 'X';
-    setTurn(nextTurn);
-    setNotice(nextTurn === 'X' ? 'Đến lượt bạn đặt quân X' : 'Đến lượt Nam Anh đặt quân O');
+    if (!myTurn || board[index] || pending) return;
+    const row = Math.floor(index / CARO_BOARD_SIZE);
+    const column = index % CARO_BOARD_SIZE;
+    setError('');
+    startTransition(async () => {
+      const result = await playCaroMoveAction(initialState.id, row, column);
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
   }
 
-  function resetMatch() {
-    setBoard(createInitialBoard());
-    setMoves(initialMoves);
-    setTurn('X');
-    setWinner(null);
-    setWinningLine([]);
-    setDraw(false);
-    setTurnSeconds(45);
-    setNotice('Ván mới đã sẵn sàng — đến lượt bạn đặt quân X');
+  function surrender() {
+    if (!active || !window.confirm('Bạn chắc chắn muốn đầu hàng trận này?')) return;
+    startTransition(async () => {
+      const result = await surrenderCaroMatchAction(initialState.id);
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
   }
 
-  function sendMessage(text = chatInput) {
-    const message = text.trim().slice(0, 180);
-    if (!message) return;
-
-    setMessages((items) => [
-      ...items,
-      {
-        id: Date.now(),
-        mine: true,
-        text: message,
-        time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(
-          new Date(),
-        ),
-      },
-    ]);
-    setChatInput('');
+  function drawAction(action: 'offer' | 'accept' | 'decline') {
+    startTransition(async () => {
+      const result =
+        action === 'offer'
+          ? await offerCaroDrawAction(initialState.id)
+          : await respondCaroDrawAction(initialState.id, action === 'accept');
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
   }
+
+  function sendMessage(text = chatInput, quick = false) {
+    if (!text.trim()) return;
+    startTransition(async () => {
+      const result = await sendMatchMessageAction(initialState.id, text, quick);
+      if (!result.ok) setError(result.error);
+      else setChatInput('');
+      router.refresh();
+    });
+  }
+
+  const statusText = active
+    ? myTurn
+      ? `Đến lượt bạn đặt quân ${myMark}`
+      : `Đang chờ đối thủ đặt quân ${initialState.currentTurn}`
+    : initialState.status === 'DRAW'
+      ? 'Trận đấu hòa'
+      : initialState.status === `${myMark}_WON`
+        ? 'Bạn đã chiến thắng!'
+        : 'Bạn đã thua trận';
 
   return (
     <>
       <div className="match-status game-panel" aria-live="polite">
-        <span>✦ Xếp hạng · Kim Cương III</span>
-        <strong>{notice}</strong>
-        <span>Thắng +24 · Hòa +6 · Thua −18</span>
+        <span>✦ {initialState.mode === 'RANKED' ? 'Đấu xếp hạng' : 'Giao hữu'}</span>
+        <strong>{statusText}</strong>
+        <span>
+          {error ||
+            (active ? `Còn ${seconds} giây` : `Kết thúc: ${initialState.resultReason ?? '—'}`)}
+        </span>
       </div>
-
       <div className="caro-match-layout">
         <PlayerCard
-          name={playerName}
-          avatar="🐷"
+          player={initialState.playerX}
           mark="X"
-          score="1.257"
-          hearts={5}
-          active={turn === 'X' && !winner && !draw}
-          seconds={turnSeconds}
+          active={active && initialState.currentTurn === 'X'}
+          seconds={seconds}
+          change={initialState.playerXChange}
         />
-
         <main className="caro-board-column">
           <div className="caro-board-wrap game-panel">
             <div className="caro-board" role="grid" aria-label="Bàn Cờ Caro XO 19 nhân 19">
               {board.map((cell, index) => (
                 <button
-                  className={`${cell ? `is-${cell.toLowerCase()}` : ''}${
-                    latestIndex === index ? ' is-latest' : ''
-                  }${winningSet.has(index) ? ' is-winning' : ''}`}
+                  className={`${cell ? `is-${cell.toLowerCase()}` : ''}${latestIndex === index ? ' is-latest' : ''}${winningSet.has(index) ? ' is-winning' : ''}`}
                   key={index}
                   type="button"
                   role="gridcell"
                   aria-label={`${caroCoordinate(index)}${cell ? `: quân ${cell}` : ': ô trống'}`}
-                  disabled={Boolean(cell || winner || draw)}
+                  disabled={Boolean(cell || !myTurn || pending)}
                   onClick={() => play(index)}
                 >
                   {cell}
@@ -163,10 +179,10 @@ export function CaroMatch({ playerName }: { playerName: string }) {
           </div>
           <div className="caro-board-legend">
             <span>
-              <b>X</b> quân của bạn
+              <b>{myMark}</b> quân của bạn
             </span>
             <span>
-              <b>O</b> đối thủ
+              <b>{myMark === 'X' ? 'O' : 'X'}</b> đối thủ
             </span>
             <span>
               <i /> nước mới nhất
@@ -179,66 +195,83 @@ export function CaroMatch({ playerName }: { playerName: string }) {
             <button
               className="is-danger"
               type="button"
-              onClick={() => {
-                setWinner('O');
-                setNotice('Bạn đã đầu hàng. Nam Anh thắng trận.');
-              }}
+              disabled={!active || pending}
+              onClick={surrender}
             >
               ⚑ Đầu hàng
             </button>
-            <button
-              className="is-draw"
-              type="button"
-              onClick={() => {
-                setDraw(true);
-                setNotice('Hai người chơi đồng ý hòa.');
-              }}
-            >
-              🤝 Xin hòa
-            </button>
-            <button
-              type="button"
-              onClick={() => setNotice('Đã ghi nhận báo lỗi giao diện. Cảm ơn bạn!')}
-            >
+            {initialState.drawOfferedById &&
+            initialState.drawOfferedById !== initialState.currentUserId ? (
+              <>
+                <button
+                  className="is-draw"
+                  type="button"
+                  disabled={pending}
+                  onClick={() => drawAction('accept')}
+                >
+                  ✓ Đồng ý hòa
+                </button>
+                <button type="button" disabled={pending} onClick={() => drawAction('decline')}>
+                  × Từ chối
+                </button>
+              </>
+            ) : (
+              <button
+                className="is-draw"
+                type="button"
+                disabled={
+                  !active || pending || initialState.drawOfferedById === initialState.currentUserId
+                }
+                onClick={() => drawAction('offer')}
+              >
+                {initialState.drawOfferedById ? 'Đang chờ phản hồi' : '🤝 Xin hòa'}
+              </button>
+            )}
+            <button type="button" onClick={() => setError('Báo lỗi đã được ghi nhận ở giao diện.')}>
               ⚠ Báo lỗi
             </button>
-            <button type="button" onClick={resetMatch}>
-              ↻ Ván mới
+            <button type="button" onClick={() => router.refresh()}>
+              ↻ Đồng bộ
             </button>
           </div>
         </main>
-
         <div className="match-opponent-column">
           <PlayerCard
-            name="Nam Anh"
-            avatar="👨🏻‍💻"
+            player={initialState.playerO}
             mark="O"
-            score="1.231"
-            hearts={4}
-            active={turn === 'O' && !winner && !draw}
-            seconds={turnSeconds}
+            active={active && initialState.currentTurn === 'O'}
+            seconds={seconds}
+            change={initialState.playerOChange}
           />
           <section className="match-chat game-panel">
             <div className="game-section-head">
               <h2>Trò chuyện</h2>
-              <button type="button">•••</button>
+              <span>{initialState.messages.length}</span>
             </div>
             <div className="match-chat__messages">
-              {messages.map((message) => (
-                <div className={message.mine ? 'is-mine' : ''} key={message.id}>
-                  <p>{message.text}</p>
-                  <time>{message.time}</time>
+              {initialState.messages.map((message) => (
+                <div
+                  className={message.senderId === initialState.currentUserId ? 'is-mine' : ''}
+                  key={message.id}
+                >
+                  <p>{message.content}</p>
+                  <time>
+                    {new Intl.DateTimeFormat('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }).format(new Date(message.createdAt))}
+                  </time>
                 </div>
               ))}
             </div>
             <div className="quick-chat">
-              <button type="button" onClick={() => sendMessage('Nước này hay đấy! 🔥')}>
+              <button type="button" onClick={() => sendMessage('Nước này hay đấy! 🔥', true)}>
                 🔥
               </button>
-              <button type="button" onClick={() => sendMessage('Cảm ơn bạn! 😊')}>
+              <button type="button" onClick={() => sendMessage('Cảm ơn bạn! 😊', true)}>
                 😊
               </button>
-              <button type="button" onClick={() => sendMessage('Xin tái đấu nhé!')}>
+              <button type="button" onClick={() => sendMessage('Xin tái đấu nhé!', true)}>
                 👋
               </button>
             </div>
@@ -251,10 +284,10 @@ export function CaroMatch({ playerName }: { playerName: string }) {
               <input
                 value={chatInput}
                 onChange={(event) => setChatInput(event.target.value)}
-                maxLength={180}
+                maxLength={500}
                 placeholder="Nhập tin nhắn…"
               />
-              <button type="submit" aria-label="Gửi tin nhắn">
+              <button type="submit" disabled={pending}>
                 ➤
               </button>
             </form>
@@ -262,14 +295,14 @@ export function CaroMatch({ playerName }: { playerName: string }) {
           <section className="move-history game-panel">
             <div className="game-section-head">
               <h2>Lịch sử nước đi</h2>
-              <span>{moves.length}</span>
+              <span>{initialState.moves.length}</span>
             </div>
             <ol>
-              {moves.slice(-12).map((move, index) => (
-                <li key={`${move.index}-${index}`}>
-                  <span>{moves.length - Math.min(12, moves.length) + index + 1}</span>
+              {initialState.moves.slice(-12).map((move) => (
+                <li key={move.id}>
+                  <span>{move.moveNumber}</span>
                   <b>{move.mark}</b>
-                  <span>{caroCoordinate(move.index)}</span>
+                  <span>{caroCoordinate(move.row * CARO_BOARD_SIZE + move.column)}</span>
                 </li>
               ))}
             </ol>
@@ -281,36 +314,32 @@ export function CaroMatch({ playerName }: { playerName: string }) {
 }
 
 function PlayerCard({
-  name,
-  avatar,
+  player,
   mark,
-  score,
-  hearts,
   active,
   seconds,
+  change,
 }: {
-  name: string;
-  avatar: string;
+  player: MatchPlayer;
   mark: CaroMark;
-  score: string;
-  hearts: number;
   active: boolean;
   seconds: number;
+  change: number | null;
 }) {
   return (
     <aside className={`match-player game-panel${active ? ' is-active' : ''}`}>
       <span className="turn-pill">{active ? `Đến lượt ${mark}` : `Quân ${mark}`}</span>
-      <span className="game-avatar game-avatar--xl">{avatar}</span>
-      <h2>{name}</h2>
-      <span className="game-rank-pill">✦ Kim Cương III</span>
-      <strong>{score}</strong>
-      <span className="player-hearts">{'❤️'.repeat(hearts)}</span>
+      <span className="game-avatar game-avatar--xl">{player.avatar}</span>
+      <h2>{player.name}</h2>
+      <span className="game-rank-pill">✦ {player.rating.toLocaleString('vi-VN')} điểm</span>
+      <strong>
+        {change === null
+          ? player.rating.toLocaleString('vi-VN')
+          : `${change >= 0 ? '+' : ''}${change}`}
+      </strong>
+      <span className="player-hearts">{'❤️'.repeat(player.hearts)}</span>
       <div className="turn-clock">
         ◷ <b>00:{String(seconds).padStart(2, '0')}</b>
-      </div>
-      <div className="player-links">
-        <button type="button">＋ Kết bạn</button>
-        <button type="button">♙ Hồ sơ</button>
       </div>
     </aside>
   );

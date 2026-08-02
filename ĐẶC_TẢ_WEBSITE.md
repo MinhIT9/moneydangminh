@@ -1,6 +1,6 @@
 # Đặc tả website Heo Xinh
 
-> Phiên bản sản phẩm: **V8.0.0**  
+> Phiên bản sản phẩm: **V8.1.0**
 > Trạng thái tài liệu: **Đặc tả theo hệ thống đang hoạt động (as-built)**  
 > Ngày cập nhật: **02/08/2026**
 
@@ -31,7 +31,7 @@ Sản phẩm hướng đến:
 - Hỗ trợ tất toán sớm bằng số tiền thực trả thấp hơn số còn lại.
 - Cung cấp landing page công khai, dễ chia sẻ và thân thiện SEO.
 - Cung cấp khu giải trí có giao diện thống nhất, responsive và dễ mở rộng thêm trò chơi.
-- Cho phép chơi thử Cờ Caro XO hai người trên cùng thiết bị trong giai đoạn FE.
+- Cho phép chơi Cờ Caro XO qua phòng riêng hoặc ghép hạng, với server xác nhận toàn bộ nước đi.
 
 ### 2.2. Ngoài phạm vi hiện tại
 
@@ -46,7 +46,7 @@ Hệ thống hiện chưa cung cấp:
 - Ứng dụng mobile native hoặc chế độ offline/PWA hoàn chỉnh.
 - API công khai dành cho ứng dụng bên thứ ba.
 - Ghép trận online, đồng bộ nước đi, chat hoặc bạn bè qua máy chủ thời gian thực.
-- Lưu điểm hạng, lịch sử trận, hồ sơ game và phần thưởng vào cơ sở dữ liệu (giai đoạn FE hiện dùng dữ liệu mẫu).
+- Thành tích/huy hiệu có điều kiện mở khóa tự động và phần thưởng vật phẩm vẫn thuộc hướng phát triển tiếp theo.
 
 ## 3. Vai trò và phân quyền
 
@@ -105,7 +105,7 @@ Kiến trúc sử dụng:
 | `/games`                      | Đã đăng nhập  | Trung tâm trò chơi và danh sách trò chơi.                           | Noindex |
 | `/games/caro`                 | Đã đăng nhập  | Sảnh Cờ Caro XO, ghép trận và tạo/tham gia phòng.                   | Noindex |
 | `/games/caro/room/[roomCode]` | Đã đăng nhập  | Phòng riêng và chia sẻ mã mời.                                      | Noindex |
-| `/games/caro/match/[matchId]` | Đã đăng nhập  | Bàn Cờ Caro XO 19×19 tương tác local.                               | Noindex |
+| `/games/caro/match/[matchId]` | Đã đăng nhập  | Bàn Cờ Caro XO 19×19 đồng bộ và xác thực phía server.               | Noindex |
 | `/games/friends`              | Đã đăng nhập  | Danh sách bạn, lọc và trò chuyện mẫu.                               | Noindex |
 | `/games/caro/profile`         | Đã đăng nhập  | Hồ sơ, thống kê, hệ thống hạng và thành tích.                       | Noindex |
 | `/games/caro/leaderboard`     | Đã đăng nhập  | Bảng xếp hạng và vị trí người chơi.                                 | Noindex |
@@ -305,15 +305,19 @@ Quản trị viên có thể:
 
 Khi xóa người dùng, dữ liệu phiên, danh mục, phương thức, giao dịch, khoản nợ và lịch sử thanh toán của người đó bị xóa theo quan hệ cascade.
 
-### 6.11. Trung tâm trò chơi — giai đoạn FE
+### 6.11. Trung tâm trò chơi và backend game
 
 - Điều hướng “Chơi giải trí” được tích hợp vào sidebar hiện có.
 - Trung tâm hiển thị hồ sơ nhanh, trò chơi nổi bật, bạn bè online, trận gần đây và bảng xếp hạng.
-- Sảnh Caro hỗ trợ giao diện ghép ngẫu nhiên, tạo phòng riêng và nhập mã phòng.
-- Phòng riêng hiển thị mã mời, người chơi, thiết lập, chia sẻ và chat minh họa.
-- Bàn 19×19 cho phép hai người luân phiên đặt `X` và `O` trên cùng thiết bị, có đồng hồ lượt, lịch sử nước đi, chat local, đầu hàng, hòa và tạo ván mới.
+- Sảnh Caro hỗ trợ hàng chờ ghép ngẫu nhiên theo Elo, tạo phòng riêng và nhập mã phòng.
+- Phòng riêng lưu trong MariaDB, có chủ phòng, khách, sẵn sàng, bắt đầu, lời mời, chia sẻ và chat.
+- Bàn 19×19 đồng bộ bằng Server Actions/polling; server kiểm tra thành viên, lượt, thời gian, ô trống và kết quả trước khi ghi nước đi.
 - Luật thắng: chuỗi từ 5 quân trở lên theo ngang, dọc hoặc chéo; chuỗi bị đối phương chặn cả hai đầu không thắng; mép bàn không được tính là quân chặn.
-- Bạn bè, tin nhắn, hồ sơ, hạng, lịch sử và ghép trận đang dùng dữ liệu mẫu ở client, chưa ghi MariaDB.
+- Tim tự hồi theo thời gian, tối đa 5; không chạy bộ đếm riêng trong database.
+- Điểm Elo, hạng, thống kê đấu hạng/giao hữu, lịch sử và bảng xếp hạng được tính và lưu phía server.
+- Bạn bè, lời mời, chặn người chơi, chat trực tiếp/phòng/trận và thông báo được lưu MariaDB; tin nhắn được giới hạn độ dài và tốc độ gửi.
+- Đầu hàng và đề nghị hòa có xác nhận của đối thủ đều được server xử lý nguyên tử.
+- API `/api/games/*` yêu cầu phiên đăng nhập, phản hồi `no-store`; POST kiểm tra cùng origin. Server Actions trả kết quả có mã lỗi ổn định.
 - Giao diện thích ứng desktop, tablet và mobile nhỏ; tôn trọng thiết lập giảm chuyển động của hệ điều hành.
 
 ## 7. Quy tắc dữ liệu và tiền tệ
@@ -329,16 +333,25 @@ Khi xóa người dùng, dữ liệu phiên, danh mục, phương thức, giao d
 
 ## 8. Mô hình dữ liệu
 
-| Thực thể        | Mục đích                                   | Quan hệ chính                                                                 |
-| --------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
-| `User`          | Tài khoản, vai trò, trạng thái và hồ sơ.   | Có nhiều session, danh mục, phương thức, giao dịch và khoản nợ.               |
-| `Session`       | Phiên đăng nhập 30 ngày.                   | Thuộc một người dùng; xóa khi người dùng bị xóa.                              |
-| `AppSetting`    | Thiết lập toàn hệ thống dạng khóa–giá trị. | Hiện dùng cho trạng thái mở đăng ký.                                          |
-| `Category`      | Phân loại nguồn thu hoặc khoản chi.        | Thuộc người dùng; giao dịch chuyển thành không phân loại khi danh mục bị xóa. |
-| `PaymentMethod` | Nguồn/phương thức tiền đã dùng.            | Thuộc người dùng; hỗ trợ ẩn thay vì xóa lịch sử.                              |
-| `Transaction`   | Một dòng tiền Thu hoặc Chi.                | Có thể gắn danh mục, phương thức, khoản nợ và lần thanh toán nợ.              |
-| `Debt`          | Khoản cần trả hoặc cần thu.                | Có nhiều lần thanh toán và giao dịch liên quan.                               |
-| `DebtPayment`   | Một lần thanh toán hoặc tất toán.          | Thuộc khoản nợ và có thể liên kết một giao dịch.                              |
+| Thực thể           | Mục đích                                   | Quan hệ chính                                                                 |
+| ------------------ | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `User`             | Tài khoản, vai trò, trạng thái và hồ sơ.   | Có nhiều session, danh mục, phương thức, giao dịch và khoản nợ.               |
+| `Session`          | Phiên đăng nhập 30 ngày.                   | Thuộc một người dùng; xóa khi người dùng bị xóa.                              |
+| `AppSetting`       | Thiết lập toàn hệ thống dạng khóa–giá trị. | Hiện dùng cho trạng thái mở đăng ký.                                          |
+| `Category`         | Phân loại nguồn thu hoặc khoản chi.        | Thuộc người dùng; giao dịch chuyển thành không phân loại khi danh mục bị xóa. |
+| `PaymentMethod`    | Nguồn/phương thức tiền đã dùng.            | Thuộc người dùng; hỗ trợ ẩn thay vì xóa lịch sử.                              |
+| `Transaction`      | Một dòng tiền Thu hoặc Chi.                | Có thể gắn danh mục, phương thức, khoản nợ và lần thanh toán nợ.              |
+| `Debt`             | Khoản cần trả hoặc cần thu.                | Có nhiều lần thanh toán và giao dịch liên quan.                               |
+| `DebtPayment`      | Một lần thanh toán hoặc tất toán.          | Thuộc khoản nợ và có thể liên kết một giao dịch.                              |
+| `GameProfile`      | Tim, Elo, hiện diện và thống kê game.      | Quan hệ một-một với người dùng.                                               |
+| `GameFriendship`   | Lời mời, bạn bè và trạng thái chặn.        | Liên kết hai tài khoản, lưu người gửi và người chặn.                          |
+| `CaroRoom`         | Phòng chờ riêng và thiết lập trận.         | Có chủ phòng, khách, tin nhắn, lời mời và nhiều trận.                         |
+| `CaroMatch`        | Trạng thái và kết quả một trận Caro.       | Có người chơi X/O, người thắng, nước đi, chat và thay đổi Elo.                |
+| `CaroMove`         | Nước đi đã được server xác nhận.           | Duy nhất theo số thứ tự và tọa độ trong một trận.                             |
+| `GameMessage`      | Tin nhắn trực tiếp, phòng hoặc trận.       | Gắn người gửi và đúng một phạm vi nghiệp vụ.                                  |
+| `GameInvite`       | Lời mời vào phòng có thời hạn.             | Gắn người gửi, người nhận và phòng.                                           |
+| `GameNotification` | Thông báo trong khu trò chơi.              | Thuộc người nhận, hỗ trợ trạng thái đã đọc.                                   |
+| `MatchmakingEntry` | Hàng chờ đấu hạng.                         | Mỗi người tối đa một bản ghi chờ.                                             |
 
 ## 9. Xác thực và bảo mật
 
@@ -357,7 +370,7 @@ Khi xóa người dùng, dữ liệu phiên, danh mục, phương thức, giao d
 
 Giới hạn bảo mật hiện tại:
 
-- Chưa có rate limiting cho đăng nhập, đăng ký và Server Actions.
+- Chưa có rate limiting phân tán cho đăng nhập và đăng ký; chat game đã có giới hạn tốc độ ở server.
 - Chưa có CAPTCHA hoặc khóa tạm theo số lần đăng nhập sai.
 - Chưa có xác thực hai lớp.
 - Chưa có nhật ký kiểm toán riêng cho thao tác quản trị.
@@ -366,7 +379,7 @@ Giới hạn bảo mật hiện tại:
 
 - Tiếng Việt là ngôn ngữ mặc định.
 - Tiếng Anh là tùy chọn.
-- Ngôn ngữ được lưu trong cookie `vi_smart_locale`.
+- Ngôn ngữ được lưu trong cookie `heo_xinh_locale`.
 - Server đọc cookie để render đúng nội dung ban đầu.
 - Client cập nhật thuộc tính `lang` của tài liệu khi đổi ngôn ngữ.
 - Font chính là Be Vietnam Pro với subset tiếng Việt và `display: swap`.

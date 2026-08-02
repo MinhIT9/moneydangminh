@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         '/debts',
         '/settings',
         '/admin',
+        '/games',
         '/login',
         '/register',
       ],

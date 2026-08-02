@@ -6,8 +6,15 @@ import {
   leaderboard,
   recentMatches,
 } from '@/lib/game-mock';
+import { InviteFriendButton } from '@/components/invite-friend-button';
 
-export function GameTopbar({ playerName }: { playerName: string }) {
+export function GameTopbar({
+  playerName,
+  unreadNotifications = 0,
+}: {
+  playerName: string;
+  unreadNotifications?: number;
+}) {
   return (
     <header className="game-topbar">
       <nav aria-label="Điều hướng nhanh khu trò chơi">
@@ -20,7 +27,7 @@ export function GameTopbar({ playerName }: { playerName: string }) {
           🎁 <span>Điểm danh</span>
         </button>
         <button className="game-notification" type="button" aria-label="Thông báo">
-          🔔<b>3</b>
+          🔔{unreadNotifications > 0 && <b>{Math.min(99, unreadNotifications)}</b>}
         </button>
         <Link className="game-user-chip" href="/games/caro/profile">
           <span>🐷</span>
@@ -51,27 +58,41 @@ export function GamePageTitle({
   );
 }
 
-export function GameProfileStrip({ playerName }: { playerName: string }) {
+export function GameProfileStrip({
+  playerName,
+  profile = gameProfile,
+}: {
+  playerName: string;
+  profile?: typeof gameProfile;
+}) {
   return (
     <section className="game-profile-strip game-panel">
       <div className="game-player-identity">
         <span className="game-avatar game-avatar--large">🐷</span>
         <div>
           <strong>{playerName}</strong>
-          <span className="game-rank-pill">{gameProfile.rank}</span>
-          <small>ID: {gameProfile.playerId}</small>
+          <span className="game-rank-pill">{profile.rank}</span>
+          <small>ID: {profile.playerId}</small>
         </div>
       </div>
-      <GameMetric label="Sinh lực" value={'❤️'.repeat(gameProfile.hearts)} detail="5/5" />
-      <GameMetric label="Hạng" value="✦" detail={gameProfile.rankShort} accent />
+      <GameMetric
+        label="Sinh lực"
+        value={'❤️'.repeat(profile.hearts)}
+        detail={`${profile.hearts}/5`}
+      />
+      <GameMetric label="Hạng" value="✦" detail={profile.rankShort} accent />
       <GameMetric
         label="Điểm xếp hạng"
-        value={formatGameScore(gameProfile.score)}
-        detail="Top 12% · +24"
+        value={formatGameScore(profile.score)}
+        detail={`Cao nhất ${formatGameScore(profile.peakScore)}`}
         accent
       />
-      <GameMetric label="Tỷ lệ thắng" value={`${gameProfile.winRate}%`} detail="326 thắng" />
-      <GameMetric label="Tổng trận" value={String(gameProfile.totalMatches)} detail="Đã tham gia" />
+      <GameMetric
+        label="Tỷ lệ thắng"
+        value={`${profile.winRate}%`}
+        detail={`${profile.wins ?? 0} thắng`}
+      />
+      <GameMetric label="Tổng trận" value={String(profile.totalMatches)} detail="Đã tham gia" />
       <div className="game-profile-strip__message">
         <span>🐷</span>
         <p>Cố lên! Mỗi ván cờ là một bước tiến đến đỉnh cao! ✨</p>
@@ -100,8 +121,16 @@ function GameMetric({
   );
 }
 
-export function OnlineFriends({ compact = false }: { compact?: boolean }) {
-  const friends = compact ? gameFriends.slice(0, 4) : gameFriends;
+export function OnlineFriends({
+  compact = false,
+  items = gameFriends,
+  roomCode,
+}: {
+  compact?: boolean;
+  items?: typeof gameFriends;
+  roomCode?: string;
+}) {
+  const friends = compact ? items.slice(0, 4) : items;
 
   return (
     <section className="game-panel game-side-card">
@@ -119,9 +148,20 @@ export function OnlineFriends({ compact = false }: { compact?: boolean }) {
               </strong>
               <small>{friend.detail}</small>
             </div>
-            <button type="button" disabled={friend.status === 'PLAYING'}>
-              {friend.status === 'PLAYING' ? 'Đang chơi' : 'Mời chơi'}
-            </button>
+            {roomCode ? (
+              <InviteFriendButton
+                friendId={friend.id}
+                roomCode={roomCode}
+                disabled={friend.status === 'PLAYING' || friend.status === 'OFFLINE'}
+              />
+            ) : (
+              <button
+                type="button"
+                disabled={friend.status === 'PLAYING' || friend.status === 'OFFLINE'}
+              >
+                {friend.status === 'PLAYING' ? 'Đang chơi' : 'Mời chơi'}
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -132,7 +172,13 @@ export function OnlineFriends({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function RecentMatches({ limit = 4 }: { limit?: number }) {
+export function RecentMatches({
+  limit = 4,
+  items = recentMatches,
+}: {
+  limit?: number;
+  items?: typeof recentMatches;
+}) {
   return (
     <section className="game-panel game-match-history">
       <div className="game-section-head">
@@ -140,7 +186,7 @@ export function RecentMatches({ limit = 4 }: { limit?: number }) {
         <Link href="/games/caro/profile">Xem hồ sơ →</Link>
       </div>
       <div>
-        {recentMatches.slice(0, limit).map((match) => (
+        {items.slice(0, limit).map((match) => (
           <div className="game-match-row" key={match.id}>
             <span className={`match-result is-${match.result.toLowerCase()}`}>
               {match.result === 'WIN' ? 'Thắng' : match.result === 'LOSS' ? 'Thua' : 'Hòa'}
@@ -156,11 +202,12 @@ export function RecentMatches({ limit = 4 }: { limit?: number }) {
           </div>
         ))}
       </div>
+      {!items.length && <p className="friends-empty">Chưa có trận đấu đã hoàn thành.</p>}
     </section>
   );
 }
 
-export function QuickLeaderboard() {
+export function QuickLeaderboard({ items = leaderboard }: { items?: typeof leaderboard }) {
   return (
     <section className="game-panel game-side-card game-leaderboard">
       <div className="game-section-head">
@@ -168,7 +215,7 @@ export function QuickLeaderboard() {
         <Link href="/games/caro/leaderboard">Đầy đủ →</Link>
       </div>
       <div>
-        {leaderboard.map((player) => (
+        {items.map((player) => (
           <div className={player.name === 'Heo Xinh' ? 'is-current' : ''} key={player.rank}>
             <b>{player.rank}</b>
             <span className="game-avatar">{player.avatar}</span>
@@ -180,6 +227,7 @@ export function QuickLeaderboard() {
           </div>
         ))}
       </div>
+      {!items.length && <p className="friends-empty">Chưa có dữ liệu xếp hạng.</p>}
     </section>
   );
 }

@@ -1,215 +1,312 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { gameFriends, type GameFriend } from '@/lib/game-mock';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  respondFriendRequestAction,
+  searchGamePlayersAction,
+  sendDirectMessageAction,
+  sendFriendRequestAction,
+} from '@/actions/game';
 
-type FriendFilter = 'ALL' | 'ONLINE' | 'PLAYING';
-type LocalMessage = { id: number; mine: boolean; text: string };
+export type FriendCenterState = {
+  currentUserId: string;
+  friends: FriendView[];
+  requests: Array<{ id: string; user: FriendView }>;
+  messages: Array<{
+    id: string;
+    senderId: string;
+    recipientId: string;
+    content: string;
+    createdAt: string;
+  }>;
+};
 
-export function GameFriendsChat({ playerName }: { playerName: string }) {
-  const [filter, setFilter] = useState<FriendFilter>('ALL');
+type FriendView = {
+  id: string;
+  name: string;
+  playerCode: string;
+  avatar: string;
+  rating: number;
+  presence: string;
+  detail: string;
+};
+type SearchPlayer = {
+  id: string;
+  displayName: string;
+  playerCode: string;
+  avatar: string;
+  rating: number;
+  presence: string;
+};
+
+export function GameFriendsChat({
+  playerName,
+  initialState,
+}: {
+  playerName: string;
+  initialState: FriendCenterState;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState(gameFriends[0].id);
+  const [selectedId, setSelectedId] = useState(initialState.friends[0]?.id ?? '');
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState('');
-  const [messages, setMessages] = useState<LocalMessage[]>([
-    {
-      id: 1,
-      mine: false,
-      text: 'Chào Heo Xinh! Cậu có rảnh không? Mình đánh vài ván Caro nhé! 😊',
-    },
-    { id: 2, mine: true, text: 'Rất sẵn lòng! Để mình tạo phòng nhé! 🎮' },
-    { id: 3, mine: false, text: 'Yeah! 💪' },
-  ]);
+  const [searchResults, setSearchResults] = useState<SearchPlayer[]>([]);
+  const selected = initialState.friends.find((friend) => friend.id === selectedId);
 
-  const friends = useMemo(
-    () =>
-      gameFriends.filter((friend) => {
-        const matchesFilter =
-          filter === 'ALL' ||
-          friend.status === filter ||
-          (filter === 'ONLINE' && friend.status !== 'OFFLINE');
-        return (
-          matchesFilter &&
-          friend.name.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      const result = await searchGamePlayersAction(query);
+      if (result.ok)
+        setSearchResults(
+          result.data.filter(
+            (player) => !initialState.friends.some((friend) => friend.id === player.id),
+          ),
         );
-      }),
-    [filter, query],
-  );
-  const selected = gameFriends.find((friend) => friend.id === selectedId) ?? gameFriends[0];
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [initialState.friends, query]);
 
-  function sendMessage() {
-    const text = input.trim().slice(0, 180);
-    if (!text) return;
-    setMessages((items) => [...items, { id: Date.now(), mine: true, text }]);
-    setInput('');
+  const conversation = useMemo(
+    () =>
+      selected
+        ? initialState.messages.filter(
+            (message) =>
+              (message.senderId === initialState.currentUserId &&
+                message.recipientId === selected.id) ||
+              (message.senderId === selected.id &&
+                message.recipientId === initialState.currentUserId),
+          )
+        : [],
+    [initialState.currentUserId, initialState.messages, selected],
+  );
+
+  function submitMessage() {
+    if (!selected || !input.trim()) return;
+    startTransition(async () => {
+      const result = await sendDirectMessageAction(selected.id, input);
+      if (!result.ok) setNotice(result.error);
+      else {
+        setInput('');
+        setNotice('');
+        router.refresh();
+      }
+    });
+  }
+
+  function addFriend(targetId: string) {
+    startTransition(async () => {
+      const result = await sendFriendRequestAction(targetId);
+      setNotice(result.ok ? 'Đã gửi lời mời kết bạn.' : result.error);
+      if (result.ok) setSearchResults((items) => items.filter((item) => item.id !== targetId));
+    });
   }
 
   return (
     <div className="friends-chat-layout">
       <aside className="friends-directory game-panel">
-        <div className="friends-tabs">
-          {(['ALL', 'ONLINE', 'PLAYING'] as const).map((item) => (
-            <button
-              className={filter === item ? 'is-active' : ''}
-              key={item}
-              type="button"
-              onClick={() => setFilter(item)}
-            >
-              {item === 'ALL' ? 'Tất cả' : item === 'ONLINE' ? 'Online' : 'Đang chơi'}
-            </button>
-          ))}
-        </div>
         <label className="friends-search">
           <span>⌕</span>
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm bạn bè…"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              if (event.target.value.trim().length < 2) setSearchResults([]);
+            }}
+            placeholder="Tìm theo tên hoặc ID…"
           />
         </label>
+        {searchResults.length > 0 && (
+          <div className="friend-search-results">
+            {searchResults.map((player) => (
+              <div key={player.id}>
+                <span className="game-avatar">{player.avatar}</span>
+                <span>
+                  <strong>{player.displayName || player.playerCode}</strong>
+                  <small>
+                    {player.playerCode} · {player.rating} điểm
+                  </small>
+                </span>
+                <button type="button" disabled={pending} onClick={() => addFriend(player.id)}>
+                  Kết bạn
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {initialState.requests.length > 0 && (
+          <section className="friend-requests">
+            <div className="friends-list-title">
+              <h2>Lời mời kết bạn</h2>
+              <span>{initialState.requests.length}</span>
+            </div>
+            {initialState.requests.map((request) => (
+              <div key={request.id}>
+                <span className="game-avatar">{request.user.avatar}</span>
+                <b>{request.user.name}</b>
+                <button
+                  type="button"
+                  onClick={() =>
+                    startTransition(async () => {
+                      await respondFriendRequestAction(request.id, true);
+                      router.refresh();
+                    })
+                  }
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    startTransition(async () => {
+                      await respondFriendRequestAction(request.id, false);
+                      router.refresh();
+                    })
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
         <div className="friends-list-title">
           <h2>Bạn bè</h2>
-          <span>{friends.length}</span>
+          <span>{initialState.friends.length}</span>
         </div>
         <div className="friends-directory-list">
-          {friends.map((friend) => (
-            <FriendListItem
+          {initialState.friends.map((friend) => (
+            <button
+              className={friend.id === selectedId ? 'is-selected' : ''}
+              type="button"
               key={friend.id}
-              friend={friend}
-              selected={friend.id === selected.id}
-              onSelect={() => setSelectedId(friend.id)}
-            />
+              onClick={() => setSelectedId(friend.id)}
+            >
+              <span className="game-avatar">{friend.avatar}</span>
+              <span>
+                <strong>
+                  {friend.name} <i className={`presence is-${friend.presence.toLowerCase()}`} />
+                </strong>
+                <small>{friend.detail}</small>
+              </span>
+              <b>›</b>
+            </button>
           ))}
-          {!friends.length && <p className="friends-empty">Không tìm thấy người bạn phù hợp.</p>}
+          {!initialState.friends.length && (
+            <p className="friends-empty">Chưa có bạn bè. Hãy tìm theo tên hoặc ID người chơi.</p>
+          )}
         </div>
-        <button
-          className="game-secondary-button friends-add"
-          type="button"
-          onClick={() => setNotice('Tính năng tìm bạn sẽ kết nối API ở giai đoạn backend.')}
-        >
-          ＋ Tìm thêm bạn bè
-        </button>
       </aside>
 
       <main className="friends-conversation game-panel">
-        <header>
-          <span className="game-avatar game-avatar--large">{selected.avatar}</span>
-          <div>
-            <h2>
-              {selected.name} <i className="presence is-online" />
-            </h2>
-            <p>{selected.detail}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setNotice(`Đã gửi lời thách đấu đến ${selected.name}.`)}
-          >
-            ⚔ Thách đấu
-          </button>
-        </header>
-        {notice && (
-          <div className="game-inline-notice">
-            {notice}
-            <button type="button" onClick={() => setNotice('')}>
-              ×
-            </button>
+        {selected ? (
+          <>
+            <header>
+              <span className="game-avatar game-avatar--large">{selected.avatar}</span>
+              <div>
+                <h2>
+                  {selected.name} <i className={`presence is-${selected.presence.toLowerCase()}`} />
+                </h2>
+                <p>
+                  {selected.detail} · {selected.playerCode}
+                </p>
+              </div>
+              <Link href={`/games/caro/profile/${selected.id}`}>Xem hồ sơ</Link>
+            </header>
+            {notice && (
+              <div className="game-inline-notice">
+                {notice}
+                <button type="button" onClick={() => setNotice('')}>
+                  ×
+                </button>
+              </div>
+            )}
+            <div className="conversation-date">Cuộc trò chuyện được lưu an toàn</div>
+            <div className="conversation-messages">
+              {conversation.map((message) => (
+                <div
+                  className={message.senderId === initialState.currentUserId ? 'is-mine' : ''}
+                  key={message.id}
+                >
+                  <span className="game-avatar">
+                    {message.senderId === initialState.currentUserId ? '🐷' : selected.avatar}
+                  </span>
+                  <p>{message.content}</p>
+                </div>
+              ))}
+              {!conversation.length && <p className="friends-empty">Hãy gửi lời chào đầu tiên.</p>}
+            </div>
+            <div className="conversation-tools">
+              <button type="button" onClick={() => setInput('Chúc bạn một ngày vui vẻ! 😊')}>
+                😊 Câu chào nhanh
+              </button>
+              <Link href="/games/caro">🎮 Tạo phòng mời bạn</Link>
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitMessage();
+              }}
+            >
+              <input
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Nhập tin nhắn…"
+                maxLength={500}
+              />
+              <button type="submit" disabled={pending}>
+                ➤
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="friends-conversation-empty">
+            <span>💬</span>
+            <h2>Bạn bè & trò chuyện</h2>
+            <p>Tìm một người chơi và gửi lời mời kết bạn để bắt đầu trò chuyện.</p>
           </div>
         )}
-        <div className="conversation-date">Hôm nay</div>
-        <div className="conversation-messages">
-          {messages.map((message) => (
-            <div className={message.mine ? 'is-mine' : ''} key={message.id}>
-              <span className="game-avatar">{message.mine ? '🐷' : selected.avatar}</span>
-              <p>{message.text}</p>
-            </div>
-          ))}
-        </div>
-        <div className="conversation-tools">
-          <button type="button">🐷 Sticker</button>
-          <button type="button">▧ Ảnh</button>
-          <button type="button">😊 Cảm xúc</button>
-          <button type="button">🎁 Gửi quà</button>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            sendMessage();
-          }}
-        >
-          <input
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Nhập tin nhắn…"
-            maxLength={180}
-          />
-          <button type="submit">➤</button>
-        </form>
       </main>
 
       <aside className="friend-profile-column">
-        <section className="friend-profile-card game-panel">
-          <span className="game-avatar game-avatar--xl">{selected.avatar}</span>
-          <h2>{selected.name}</h2>
-          <p>🟢 {selected.detail}</p>
-          <div>
-            <span>
-              <small>Hạng</small>
-              <b>✦ Kim Cương III</b>
-            </span>
-            <span>
-              <small>Tỷ lệ thắng</small>
-              <b>68%</b>
-            </span>
-            <span>
-              <small>Điểm</small>
-              <b>{selected.score.toLocaleString('vi-VN')}</b>
-            </span>
-          </div>
-          <Link className="game-primary-button" href="/games/caro/room/AB7K2M">
-            🎮 Mời vào phòng riêng
-          </Link>
-          <button
-            type="button"
-            onClick={() => setNotice(`Đã gửi lời thách đấu đến ${selected.name}.`)}
-          >
-            ⚔ Thách đấu
-          </button>
-        </section>
+        {selected && (
+          <section className="friend-profile-card game-panel">
+            <span className="game-avatar game-avatar--xl">{selected.avatar}</span>
+            <h2>{selected.name}</h2>
+            <p>{selected.detail}</p>
+            <div>
+              <span>
+                <small>ID</small>
+                <b>{selected.playerCode}</b>
+              </span>
+              <span>
+                <small>Điểm</small>
+                <b>{selected.rating}</b>
+              </span>
+              <span>
+                <small>Trạng thái</small>
+                <b>{selected.presence}</b>
+              </span>
+            </div>
+            <Link className="game-primary-button" href="/games/caro">
+              🎮 Tạo phòng riêng
+            </Link>
+          </section>
+        )}
         <section className="friend-invite-card game-panel">
           <span>🐷</span>
           <div>
-            <h2>Tạo phòng & mời bạn</h2>
-            <p>Phòng của {playerName}</p>
-            <code>XO4721</code>
+            <h2>Xin chào, {playerName}</h2>
+            <p>Tin nhắn được kiểm tra quyền bạn bè và giới hạn tốc độ phía server.</p>
           </div>
-          <Link href="/games/caro/room/XO4721">Gửi lời mời →</Link>
         </section>
       </aside>
     </div>
-  );
-}
-
-function FriendListItem({
-  friend,
-  selected,
-  onSelect,
-}: {
-  friend: GameFriend;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button className={selected ? 'is-selected' : ''} type="button" onClick={onSelect}>
-      <span className="game-avatar">{friend.avatar}</span>
-      <span>
-        <strong>
-          {friend.name} <i className={`presence is-${friend.status.toLowerCase()}`} />
-        </strong>
-        <small>{friend.detail}</small>
-      </span>
-      <b>⋮</b>
-    </button>
   );
 }

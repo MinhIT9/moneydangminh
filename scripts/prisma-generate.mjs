@@ -78,12 +78,23 @@ function replaceGeneratedClient() {
     }
 
     renameSync(candidateOutputPath, clientOutputPath);
-    rmSync(backupOutputPath, {
-      recursive: true,
-      force: true,
-      maxRetries: 3,
-      retryDelay: 100,
-    });
+    try {
+      rmSync(backupOutputPath, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 100,
+      });
+    } catch (cleanupError) {
+      const cleanupCode =
+        typeof cleanupError === 'object' && cleanupError !== null && 'code' in cleanupError
+          ? cleanupError.code
+          : undefined;
+      if (cleanupCode !== 'EPERM' && cleanupCode !== 'EBUSY') throw cleanupError;
+      console.warn(
+        `Prisma Client was updated. Windows is still holding the old backup at ${relative(resolve('.'), backupOutputPath)}; it can be removed after the locking process exits.`,
+      );
+    }
   } catch (error) {
     if (!existsSync(clientOutputPath) && existsSync(backupOutputPath)) {
       renameSync(backupOutputPath, clientOutputPath);

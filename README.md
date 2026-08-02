@@ -4,7 +4,19 @@ Heo Xinh — “Tiết kiệm và giải trí” — là ứng dụng ghi chép 
 trò chơi trí tuệ, xây bằng Next.js App Router, TypeScript, Prisma và MariaDB. Ứng dụng có landing page công khai; các trang
 thu chi, danh mục, khoản nợ và cài đặt yêu cầu đăng nhập. Có thêm khu vực quản
 trị để mở/đóng đăng ký và quản lý tài khoản thường. Khu Cờ Caro XO hiện là bản
-FE tương tác local; dữ liệu bạn bè, xếp hạng và trận đấu đang dùng dữ liệu mẫu.
+game có backend MariaDB, Server Actions và API HTTP. Nước đi, phòng, tim, Elo,
+bạn bè, chat, lời mời và kết quả trận đều được xác thực phía máy chủ.
+
+Backend game hiện hỗ trợ:
+
+- Profile game tự tạo theo tài khoản và ID người chơi ổn định.
+- Phòng riêng, sẵn sàng, bắt đầu trận, lời mời và chat phòng.
+- Bàn 19×19 với kiểm tra lượt, ô trống, thời gian và luật thắng phía server.
+- Đầu hàng và đề nghị hòa có xác nhận từ đối thủ.
+- Hàng chờ đấu hạng, phạm vi Elo mở rộng và hạn chế ghép lặp đối thủ.
+- Tim hồi theo thời gian, Elo, thống kê và bảng xếp hạng lưu MariaDB.
+- Kết bạn, chấp nhận/từ chối, chặn và tin nhắn trực tiếp có giới hạn tốc độ.
+- API polling riêng tư tại `/api/games/*`, không cache và không index.
 
 ## Yêu cầu
 

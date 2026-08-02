@@ -8,7 +8,9 @@ import {
   QuickLeaderboard,
   RecentMatches,
 } from '@/components/game-ui';
+import { CreateRoomButton } from '@/components/caro-actions';
 import { requireUser } from '@/lib/auth';
+import { getCaroRank, getGameOverview } from '@/lib/game';
 
 export const metadata = {
   title: 'Trung tâm trò chơi',
@@ -17,10 +19,85 @@ export const metadata = {
 export default async function GamesPage() {
   const user = await requireUser();
   const playerName = user.displayName || 'Heo Xinh';
+  const overview = await getGameOverview(user.id);
+  const rankedMatches =
+    overview.profile.rankedWins + overview.profile.rankedLosses + overview.profile.rankedDraws;
+  const friendlyMatches =
+    overview.profile.friendlyWins +
+    overview.profile.friendlyLosses +
+    overview.profile.friendlyDraws;
+  const totalMatches = rankedMatches + friendlyMatches;
+  const wins = overview.profile.rankedWins + overview.profile.friendlyWins;
+  const profileView = {
+    playerId: overview.profile.playerCode,
+    score: overview.profile.rating,
+    peakScore: overview.profile.peakRating,
+    rank: getCaroRank(overview.profile.rating).name,
+    rankShort: getCaroRank(overview.profile.rating).short,
+    hearts: overview.profile.hearts,
+    totalMatches,
+    wins,
+    losses: overview.profile.rankedLosses + overview.profile.friendlyLosses,
+    draws: overview.profile.rankedDraws + overview.profile.friendlyDraws,
+    winRate: totalMatches ? Math.round((wins / totalMatches) * 100) : 0,
+    currentStreak: overview.profile.currentWinStreak,
+    longestStreak: overview.profile.longestWinStreak,
+    rankedMatches,
+    friendlyMatches,
+  };
+  const friendItems = overview.friendships.map((relationship) => {
+    const friend =
+      relationship.requesterId === user.id ? relationship.addressee : relationship.requester;
+    return {
+      id: friend.id,
+      name: friend.displayName || 'Kỳ thủ',
+      avatar: friend.gameProfile?.avatar ?? '🐷',
+      status:
+        friend.gameProfile?.presence === 'PLAYING'
+          ? ('PLAYING' as const)
+          : friend.gameProfile?.presence === 'OFFLINE'
+            ? ('OFFLINE' as const)
+            : ('ONLINE' as const),
+      detail:
+        friend.gameProfile?.presence === 'PLAYING'
+          ? 'Đang chơi Cờ Caro'
+          : friend.gameProfile?.presence === 'OFFLINE'
+            ? 'Ngoại tuyến'
+            : 'Đang online',
+      score: friend.gameProfile?.rating ?? 500,
+    };
+  });
+  const matchItems = overview.recentMatches.map((match) => {
+    const opponent = match.playerXId === user.id ? match.playerO : match.playerX;
+    const won = match.winnerId === user.id;
+    return {
+      id: match.id,
+      opponent: opponent.displayName || 'Kỳ thủ',
+      avatar: opponent.gameProfile?.avatar ?? '🐷',
+      result:
+        match.status === 'DRAW' ? ('DRAW' as const) : won ? ('WIN' as const) : ('LOSS' as const),
+      score: match.status === 'DRAW' ? '½ - ½' : won ? '1 - 0' : '0 - 1',
+      ratingChange:
+        match.playerXId === user.id ? (match.playerXChange ?? 0) : (match.playerOChange ?? 0),
+      playedAt: match.endedAt
+        ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(
+            match.endedAt,
+          )
+        : '—',
+      mode: match.mode,
+    };
+  });
+  const leaderboardItems = overview.leaderboard.slice(0, 6).map((entry, index) => ({
+    rank: index + 1,
+    name: entry.user.displayName || entry.playerCode,
+    avatar: entry.avatar,
+    tier: getCaroRank(entry.rating).name,
+    score: entry.rating,
+  }));
 
   return (
     <>
-      <GameTopbar playerName={playerName} />
+      <GameTopbar playerName={playerName} unreadNotifications={overview.unreadNotifications} />
       <GamePageTitle
         icon="🎮"
         title="Trung tâm trò chơi"
@@ -29,7 +106,7 @@ export default async function GamesPage() {
 
       <div className="game-layout game-layout--sidebar">
         <main className="game-main-column">
-          <GameProfileStrip playerName={playerName} />
+          <GameProfileStrip playerName={playerName} profile={profileView} />
 
           <section className="game-hero-card game-panel">
             <Image
@@ -55,9 +132,7 @@ export default async function GamesPage() {
                 <Link className="game-primary-button" href="/games/caro">
                   ▶ Chơi ngay
                 </Link>
-                <Link className="game-secondary-button" href="/games/caro/room/AB7K2M">
-                  ♙ Tạo bàn
-                </Link>
+                <CreateRoomButton />
               </div>
             </div>
           </section>
@@ -75,7 +150,7 @@ export default async function GamesPage() {
             </div>
           </section>
 
-          <RecentMatches />
+          <RecentMatches items={matchItems} />
         </main>
 
         <aside className="game-side-column">
@@ -103,8 +178,8 @@ export default async function GamesPage() {
               Xem cách chơi →
             </Link>
           </section>
-          <OnlineFriends compact />
-          <QuickLeaderboard />
+          <OnlineFriends compact items={friendItems} />
+          <QuickLeaderboard items={leaderboardItems} />
         </aside>
       </div>
     </>

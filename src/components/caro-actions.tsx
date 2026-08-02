@@ -2,17 +2,55 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  cancelRankedMatchAction,
+  createPrivateRoomAction,
+  joinPrivateRoomAction,
+  pollRankedMatchAction,
+  queueRankedMatchAction,
+} from '@/actions/game';
 
 export function MatchmakingButton() {
+  const router = useRouter();
   const [searching, setSearching] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!searching) return;
 
-    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    const timer = window.setInterval(async () => {
+      setSeconds((value) => value + 2);
+      const result = await pollRankedMatchAction();
+      if (!result.ok) {
+        setError(result.error);
+        setSearching(false);
+      } else if (result.data.status === 'MATCHED') {
+        router.push(`/games/caro/match/${result.data.matchId}`);
+      } else if (result.data.status === 'IDLE') {
+        setSearching(false);
+      }
+    }, 2000);
     return () => window.clearInterval(timer);
-  }, [searching]);
+  }, [router, searching]);
+
+  async function startSearching() {
+    setError('');
+    const result = await queueRankedMatchAction();
+    if (!result.ok) return setError(result.error);
+    if (result.data.status === 'MATCHED') {
+      router.push(`/games/caro/match/${result.data.matchId}`);
+      return;
+    }
+    setSearching(true);
+    setSeconds(result.data.waitedSeconds);
+  }
+
+  async function cancelSearching() {
+    await cancelRankedMatchAction();
+    setSearching(false);
+    setSeconds(0);
+  }
 
   if (searching) {
     return (
@@ -21,16 +59,12 @@ export function MatchmakingButton() {
         <div>
           <strong>Đang tìm đối thủ phù hợp…</strong>
           <small>
-            {seconds} giây · Phạm vi ±{seconds < 10 ? 100 : seconds < 20 ? 200 : 300} điểm
+            {seconds} giây · Phạm vi ±
+            {seconds < 10 ? 100 : seconds < 20 ? 200 : Math.min(600, 200 + (seconds - 20) * 20)}{' '}
+            điểm
           </small>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setSearching(false);
-            setSeconds(0);
-          }}
-        >
+        <button type="button" onClick={cancelSearching}>
           Hủy tìm
         </button>
       </div>
@@ -38,19 +72,48 @@ export function MatchmakingButton() {
   }
 
   return (
-    <button
-      className="game-primary-button game-primary-button--wide"
-      type="button"
-      onClick={() => setSearching(true)}
-    >
-      🎮 Tìm đối thủ
-    </button>
+    <div className="game-action-stack">
+      <button
+        className="game-primary-button game-primary-button--wide"
+        type="button"
+        onClick={startSearching}
+      >
+        🎮 Tìm đối thủ
+      </button>
+      {error && <p className="game-action-error">{error}</p>}
+    </div>
+  );
+}
+
+export function CreateRoomButton() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+
+  async function createRoom() {
+    setPending(true);
+    setError('');
+    const result = await createPrivateRoomAction();
+    setPending(false);
+    if (!result.ok) return setError(result.error);
+    router.push(`/games/caro/room/${result.data.code}`);
+  }
+
+  return (
+    <div className="game-action-stack">
+      <button className="game-green-button" type="button" disabled={pending} onClick={createRoom}>
+        {pending ? 'Đang tạo…' : '▣ Tạo phòng'}
+      </button>
+      {error && <p className="game-action-error">{error}</p>}
+    </div>
   );
 }
 
 export function RoomJoinForm() {
   const router = useRouter();
   const [code, setCode] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
 
   function normalizeRoomCode(value: string) {
     return value
@@ -62,9 +125,15 @@ export function RoomJoinForm() {
   return (
     <form
       className="room-join-form"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        if (code.length === 6) router.push(`/games/caro/room/${code}`);
+        if (code.length !== 6) return;
+        setPending(true);
+        setError('');
+        const result = await joinPrivateRoomAction(code);
+        setPending(false);
+        if (!result.ok) return setError(result.error);
+        router.push(`/games/caro/room/${result.data.code}`);
       }}
     >
       <label htmlFor="room-code">Tham gia bằng ID phòng</label>
@@ -76,10 +145,11 @@ export function RoomJoinForm() {
           placeholder="VD: AB7K2M"
           autoComplete="off"
         />
-        <button type="submit" disabled={code.length !== 6}>
-          Tham gia
+        <button type="submit" disabled={code.length !== 6 || pending}>
+          {pending ? 'Đang vào…' : 'Tham gia'}
         </button>
       </div>
+      {error && <p className="game-action-error">{error}</p>}
     </form>
   );
 }
@@ -88,9 +158,13 @@ export function CopyGameValue({ value, label }: { value: string; label: string }
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
   }
 
   return (
