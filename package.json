@@ -1,8 +1,8 @@
 {
   "name": "moneydangminh",
-  "version": "7.7.1",
+  "version": "8.0.0",
   "private": true,
-  "description": "Ví Smart — personal finance tracker built with Next.js and MariaDB.",
+  "description": "Heo Xinh — saving, personal finance, and casual games built with Next.js and MariaDB.",
   "scripts": {
     "dev": "next dev",
     "dev:fresh": "npm run db:generate && next dev",
@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run lint && npm run typecheck && npm run format:check",
+    "test:caro": "tsx scripts/verify-caro-rules.ts",
     "db:generate": "node scripts/prisma-generate.mjs",
     "db:migrate": "prisma migrate dev && npm run db:generate",
     "db:deploy": "prisma migrate deploy",

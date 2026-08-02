@@ -8,15 +8,15 @@ import { getTranslations } from '@/i18n/server';
 const supportEmail = process.env.SUPPORT_EMAIL;
 
 export const metadata: Metadata = {
-  title: 'Hỗ trợ | Ví Smart',
+  title: 'Hỗ trợ | Heo Xinh',
   description:
-    'Cần hỗ trợ khi dùng Ví Smart? Xem các hướng dẫn cơ bản hoặc gửi câu hỏi cho đội ngũ hỗ trợ.',
+    'Cần hỗ trợ khi dùng Heo Xinh? Xem các hướng dẫn cơ bản hoặc gửi câu hỏi cho đội ngũ hỗ trợ.',
   alternates: {
     canonical: '/support',
   },
   openGraph: {
-    title: 'Hỗ trợ | Ví Smart',
-    description: 'Hướng dẫn và kênh hỗ trợ cho người dùng Ví Smart.',
+    title: 'Hỗ trợ | Heo Xinh',
+    description: 'Hướng dẫn và kênh hỗ trợ cho người dùng Heo Xinh.',
     url: '/support',
   },
 };
@@ -31,7 +31,7 @@ export default async function SupportPage() {
         <style>{supportStyles}</style>
         <header className="support-page__header">
           <Link className="support-page__brand" href="/">
-            <span aria-hidden="true">V</span>
+            <span aria-hidden="true">🐷</span>
             {t('brand.name')}
           </Link>
           <div className="support-page__header-actions">

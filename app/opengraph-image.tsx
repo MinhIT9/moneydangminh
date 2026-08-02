@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Ví Smart - Thu chi rõ ràng, sống nhẹ nhàng';
+export const alt = 'Heo Xinh - Tiết kiệm và giải trí';
 export const size = {
   width: 1200,
   height: 630,
@@ -49,12 +49,12 @@ export default function OpenGraphImage() {
               background: 'linear-gradient(135deg, #8b72ff, #5534dd)',
             }}
           >
-            V
+            🐷
           </div>
-          Ví Smart
+          Heo Xinh
         </div>
         <div style={{ display: 'flex', color: '#684be7', fontSize: 18, fontWeight: 800 }}>
-          VÍ SMART
+          HEO XINH
         </div>
         <div
           style={{
@@ -66,10 +66,10 @@ export default function OpenGraphImage() {
             fontWeight: 800,
           }}
         >
-          Thu chi rõ ràng, sống nhẹ nhàng.
+          Tiết kiệm và giải trí.
         </div>
         <div style={{ display: 'flex', marginTop: '22px', color: '#667085', fontSize: 24 }}>
-          Ghi chép gọn gàng để làm chủ tiền của bạn mỗi ngày.
+          Quản lý tài chính nhẹ nhàng, thư giãn với những trò chơi trí tuệ.
         </div>
       </div>
 

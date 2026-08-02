@@ -16,7 +16,9 @@ export default async function AuthLayout({ children }: Readonly<{ children: Reac
       <main className="auth-page">
         <section className="auth-card">
           <Link className="brand" href="/" prefetch>
-            <span className="brand-mark">V</span>
+            <span className="brand-mark" aria-hidden="true">
+              🐷
+            </span>
             {t('brand.name')}
           </Link>
           <LanguageSwitcher className="auth-language" />

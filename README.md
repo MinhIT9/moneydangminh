@@ -1,9 +1,10 @@
-# Ví Smart
+# Heo Xinh
 
-Ví Smart là ứng dụng ghi chép thu chi cá nhân, xây bằng Next.js App Router,
-TypeScript, Prisma và MariaDB. Ứng dụng có landing page công khai; các trang
+Heo Xinh — “Tiết kiệm và giải trí” — là ứng dụng ghi chép thu chi cá nhân và khu
+trò chơi trí tuệ, xây bằng Next.js App Router, TypeScript, Prisma và MariaDB. Ứng dụng có landing page công khai; các trang
 thu chi, danh mục, khoản nợ và cài đặt yêu cầu đăng nhập. Có thêm khu vực quản
-trị để mở/đóng đăng ký và quản lý tài khoản thường.
+trị để mở/đóng đăng ký và quản lý tài khoản thường. Khu Cờ Caro XO hiện là bản
+FE tương tác local; dữ liệu bạn bè, xếp hạng và trận đấu đang dùng dữ liệu mẫu.
 
 ## Yêu cầu
 

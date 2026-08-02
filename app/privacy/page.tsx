@@ -6,15 +6,14 @@ import { privacyCopy } from '@/i18n/legal-copy';
 import { getTranslations } from '@/i18n/server';
 
 export const metadata: Metadata = {
-  title: 'Chính sách riêng tư | Ví Smart',
-  description:
-    'Tìm hiểu cách Ví Smart thu thập, sử dụng và bảo vệ dữ liệu tài chính cá nhân của bạn.',
+  title: 'Chính sách riêng tư | Heo Xinh',
+  description: 'Tìm hiểu cách Heo Xinh thu thập, sử dụng và bảo vệ dữ liệu cá nhân của bạn.',
   alternates: {
     canonical: '/privacy',
   },
   openGraph: {
-    title: 'Chính sách riêng tư | Ví Smart',
-    description: 'Thông tin về việc thu thập, sử dụng và bảo vệ dữ liệu cá nhân tại Ví Smart.',
+    title: 'Chính sách riêng tư | Heo Xinh',
+    description: 'Thông tin về việc thu thập, sử dụng và bảo vệ dữ liệu cá nhân tại Heo Xinh.',
     url: '/privacy',
   },
 };
@@ -30,7 +29,7 @@ export default async function PrivacyPage() {
         <style>{legalStyles}</style>
         <header className="legal-page__header">
           <Link className="legal-page__brand" href="/">
-            <span aria-hidden="true">V</span>
+            <span aria-hidden="true">🐷</span>
             {t('brand.name')}
           </Link>
           <div className="legal-page__header-actions">

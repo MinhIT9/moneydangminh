@@ -74,7 +74,7 @@ type LandingCopy = {
 
 export const landingCopy: Record<Locale, LandingCopy> = {
   vi: {
-    homeLabel: 'Trang chủ Ví Smart',
+    homeLabel: 'Trang chủ Heo Xinh',
     navigationLabel: 'Điều hướng chính',
     navigation: {
       features: 'Tính năng',
@@ -87,7 +87,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       eyebrow: 'Sổ thu chi nhẹ nhàng cho mỗi ngày',
       title: 'Thu chi rõ ràng, sống nhẹ nhàng.',
       description:
-        'Ghi một khoản thu hoặc chi trong vài giây. Ví Smart giúp bạn nhìn lại tháng của mình rõ ràng hơn, không cần bảng tính phức tạp.',
+        'Ghi một khoản thu hoặc chi trong vài giây. Heo Xinh giúp bạn nhìn lại tháng của mình rõ ràng hơn, rồi thư giãn với trò chơi trí tuệ nhẹ nhàng.',
       primaryAction: 'Tạo sổ thu chi của tôi',
       secondaryAction: 'Xem cách hoạt động',
       note: 'Dễ dùng trên điện thoại, máy tính bảng và máy tính.',
@@ -128,7 +128,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
     audience: {
       eyebrow: 'Một công cụ nhỏ, nhiều hoàn cảnh sống',
-      title: 'Ví Smart đồng hành cùng bạn theo cách riêng.',
+      title: 'Heo Xinh đồng hành cùng bạn theo cách riêng.',
       items: [
         {
           title: 'Học sinh & sinh viên',
@@ -148,10 +148,10 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       eyebrow: 'Những khoảnh khắc rất thật',
       title: 'Mỗi khoản nhỏ đều đáng được nhìn rõ.',
       description:
-        'Dù bạn đang đi học, vun vén gia đình hay làm việc tự do, Ví Smart giúp việc ghi thu chi trở thành một thói quen nhẹ nhàng mỗi ngày.',
-      heroAlt: 'Một người dùng Ví Smart ghi lại thu chi bằng điện thoại và sổ tay.',
+        'Dù bạn đang đi học, vun vén gia đình hay làm việc tự do, Heo Xinh giúp việc ghi thu chi trở thành một thói quen nhẹ nhàng mỗi ngày.',
+      heroAlt: 'Một người dùng Heo Xinh ghi lại thu chi bằng điện thoại và sổ tay.',
       studentAlt: 'Một sinh viên ghi khoản chi hằng ngày bằng điện thoại.',
-      familyAlt: 'Một phụ huynh theo dõi chi tiêu gia đình bằng Ví Smart.',
+      familyAlt: 'Một phụ huynh theo dõi chi tiêu gia đình bằng Heo Xinh.',
     },
     steps: {
       eyebrow: 'Bắt đầu chỉ với 3 bước',
@@ -176,7 +176,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       title: 'Bắt đầu thật nhẹ nhàng.',
       items: [
         {
-          question: 'Ví Smart phù hợp với ai?',
+          question: 'Heo Xinh phù hợp với ai?',
           answer:
             'Ứng dụng được thiết kế cho học sinh, sinh viên, mẹ bỉm, gia đình trẻ và người làm tự do muốn ghi lại tiền vào - ra thật đơn giản.',
         },
@@ -210,7 +210,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
   },
   en: {
-    homeLabel: 'Ví Smart home',
+    homeLabel: 'Heo Xinh home',
     navigationLabel: 'Main navigation',
     navigation: {
       features: 'Features',
@@ -223,7 +223,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       eyebrow: 'A lighter money journal for every day',
       title: 'Clear finances, lighter living.',
       description:
-        'Record an income or expense in seconds. Ví Smart helps you see your month more clearly, without a complicated spreadsheet.',
+        'Record an income or expense in seconds. Heo Xinh helps you see your month clearly and unwind with a light strategy game.',
       primaryAction: 'Create my money journal',
       secondaryAction: 'See how it works',
       note: 'Easy to use on phones, tablets, and computers.',
@@ -264,7 +264,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
     audience: {
       eyebrow: 'One small tool, many real lives',
-      title: 'Ví Smart supports your own way of living.',
+      title: 'Heo Xinh supports your own way of living.',
       items: [
         {
           title: 'Students',
@@ -284,10 +284,10 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       eyebrow: 'Made for real life',
       title: 'Every small record deserves clarity.',
       description:
-        'Whether you study, care for a family, or work independently, Ví Smart makes money tracking a light daily habit.',
-      heroAlt: 'A Ví Smart user recording finances with a phone and notebook.',
+        'Whether you study, care for a family, or work independently, Heo Xinh makes money tracking a light daily habit.',
+      heroAlt: 'A Heo Xinh user recording finances with a phone and notebook.',
       studentAlt: 'A student recording an everyday expense on a phone.',
-      familyAlt: 'A parent reviewing a household budget with Ví Smart.',
+      familyAlt: 'A parent reviewing a household budget with Heo Xinh.',
     },
     steps: {
       eyebrow: 'Start in three steps',
@@ -312,7 +312,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       title: 'Start gently.',
       items: [
         {
-          question: 'Who is Ví Smart for?',
+          question: 'Who is Heo Xinh for?',
           answer:
             'It is designed for students, parents, young families, and freelancers who want a simple record of money coming in and going out.',
         },

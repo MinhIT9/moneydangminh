@@ -3,8 +3,8 @@ import type { Locale } from '@/i18n/config';
 type TranslationValues = Record<string, string | number>;
 
 const vi = {
-  'brand.name': 'Ví Smart',
-  'brand.slogan': 'Thu chi rõ ràng, sống nhẹ nhàng.',
+  'brand.name': 'Heo Xinh',
+  'brand.slogan': 'Tiết kiệm và giải trí.',
   'language.select': 'Chọn ngôn ngữ',
   'language.vietnamese': 'Tiếng Việt',
   'language.english': 'English',
@@ -12,6 +12,7 @@ const vi = {
   'nav.transactions': 'Giao dịch',
   'nav.categories': 'Danh mục',
   'nav.debts': 'Khoản nợ',
+  'nav.games': 'Chơi giải trí',
   'nav.settings': 'Cài đặt',
   'nav.admin': 'Quản trị',
   'nav.application': 'Điều hướng ứng dụng',
@@ -283,8 +284,8 @@ const vi = {
 export type MessageKey = keyof typeof vi;
 
 const en: Record<MessageKey, string> = {
-  'brand.name': 'Ví Smart',
-  'brand.slogan': 'Clear finances, lighter living.',
+  'brand.name': 'Heo Xinh',
+  'brand.slogan': 'Save smart, play happy.',
   'language.select': 'Choose language',
   'language.vietnamese': 'Tiếng Việt',
   'language.english': 'English',
@@ -292,6 +293,7 @@ const en: Record<MessageKey, string> = {
   'nav.transactions': 'Transactions',
   'nav.categories': 'Categories',
   'nav.debts': 'Debts',
+  'nav.games': 'Play & relax',
   'nav.settings': 'Settings',
   'nav.admin': 'Administration',
   'nav.application': 'App navigation',

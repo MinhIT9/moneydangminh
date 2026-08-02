@@ -18,6 +18,7 @@ export function AppNavigation({
     { href: '/transactions', label: t('nav.transactions'), icon: '↔' },
     { href: '/categories', label: t('nav.categories'), icon: '▦' },
     { href: '/debts', label: t('nav.debts'), icon: '◫' },
+    { href: '/games', label: t('nav.games'), icon: '🎮' },
     { href: '/settings', label: t('nav.settings'), icon: '⚙' },
   ];
   const adminLink = { href: '/admin', label: t('nav.admin'), icon: '◈' };
@@ -30,7 +31,9 @@ export function AppNavigation({
           key={link.href}
           href={link.href}
           prefetch
-          aria-current={pathname === link.href ? 'page' : undefined}
+          aria-current={
+            pathname === link.href || pathname.startsWith(`${link.href}/`) ? 'page' : undefined
+          }
         >
           {!mobile ? <span aria-hidden="true">{link.icon}</span> : null}
           {link.label}

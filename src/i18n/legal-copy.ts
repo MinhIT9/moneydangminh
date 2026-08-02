@@ -59,11 +59,11 @@ export const supportCopy: Record<Locale, SupportCopy> = {
       },
     ],
     contactEyebrow: 'VẪN CẦN HỖ TRỢ?',
-    contactTitle: 'Gửi câu hỏi cho Ví Smart',
+    contactTitle: 'Gửi câu hỏi cho Heo Xinh',
     contactDescription:
       'Hãy mô tả ngắn tình huống bạn gặp phải, kèm ảnh màn hình nếu có. Chúng tôi sẽ phản hồi qua email sớm nhất có thể.',
     contactAction: 'Gửi email hỗ trợ',
-    contactSubject: 'Hỗ trợ Ví Smart',
+    contactSubject: 'Hỗ trợ Heo Xinh',
     emailUnavailable:
       'Kênh email hỗ trợ đang được cập nhật. Người vận hành cần cấu hình SUPPORT_EMAIL trước khi public.',
     securityTitle: 'Lưu ý bảo mật',
@@ -96,11 +96,11 @@ export const supportCopy: Record<Locale, SupportCopy> = {
       },
     ],
     contactEyebrow: 'STILL NEED HELP?',
-    contactTitle: 'Send Ví Smart a question',
+    contactTitle: 'Send Heo Xinh a question',
     contactDescription:
       'Briefly describe the situation you are facing and attach a screenshot if available. We will reply by email as soon as possible.',
     contactAction: 'Email support',
-    contactSubject: 'Ví Smart support',
+    contactSubject: 'Heo Xinh support',
     emailUnavailable:
       'The support email channel is being set up. The operator needs to configure SUPPORT_EMAIL before publishing.',
     securityTitle: 'Security reminder',
@@ -113,15 +113,15 @@ export const supportCopy: Record<Locale, SupportCopy> = {
 export const privacyCopy: Record<Locale, PrivacyCopy> = {
   vi: {
     home: '← Về trang chủ',
-    eyebrow: 'Ví Smart',
+    eyebrow: 'Heo Xinh',
     title: 'Chính sách riêng tư',
     updated: 'Cập nhật lần cuối: 02/08/2026',
     intro:
-      'Ví Smart tôn trọng quyền riêng tư của bạn. Chính sách này giải thích những dữ liệu cần thiết để vận hành ứng dụng ghi thu chi và cách chúng được sử dụng.',
+      'Heo Xinh tôn trọng quyền riêng tư của bạn. Chính sách này giải thích dữ liệu cần thiết để vận hành tính năng tài chính, giải trí và cách chúng được sử dụng.',
     sections: [
       {
         title: '1. Dữ liệu chúng tôi thu thập',
-        paragraphs: ['Khi bạn tạo và sử dụng tài khoản, Ví Smart có thể lưu:'],
+        paragraphs: ['Khi bạn tạo và sử dụng tài khoản, Heo Xinh có thể lưu:'],
         items: [
           'Thông tin tài khoản như email, số điện thoại và mật khẩu đã được mã hóa.',
           'Dữ liệu bạn chủ động nhập: giao dịch thu chi, danh mục, phương thức thanh toán, ghi chú và khoản nợ.',
@@ -134,8 +134,8 @@ export const privacyCopy: Record<Locale, PrivacyCopy> = {
         items: [
           'Hiển thị sổ thu chi, báo cáo và các tổng hợp tài chính theo yêu cầu của bạn.',
           'Xác thực tài khoản, bảo vệ phiên đăng nhập và hỗ trợ khi có yêu cầu.',
-          'Cải thiện độ ổn định, an toàn và trải nghiệm sử dụng của Ví Smart.',
-          'Ví Smart không bán hoặc cho thuê dữ liệu tài chính cá nhân của bạn cho bên thứ ba nhằm mục đích quảng cáo.',
+          'Cải thiện độ ổn định, an toàn và trải nghiệm sử dụng của Heo Xinh.',
+          'Heo Xinh không bán hoặc cho thuê dữ liệu tài chính cá nhân của bạn cho bên thứ ba nhằm mục đích quảng cáo.',
         ],
       },
       {
@@ -159,7 +159,7 @@ export const privacyCopy: Record<Locale, PrivacyCopy> = {
       {
         title: '6. Thay đổi chính sách',
         paragraphs: [
-          'Khi có thay đổi quan trọng, chúng tôi sẽ cập nhật ngày ở đầu trang này. Việc tiếp tục sử dụng Ví Smart sau khi chính sách mới được công bố được hiểu là bạn đã xem và chấp nhận nội dung cập nhật.',
+          'Khi có thay đổi quan trọng, chúng tôi sẽ cập nhật ngày ở đầu trang này. Việc tiếp tục sử dụng Heo Xinh sau khi chính sách mới được công bố được hiểu là bạn đã xem và chấp nhận nội dung cập nhật.',
         ],
       },
       {
@@ -172,15 +172,15 @@ export const privacyCopy: Record<Locale, PrivacyCopy> = {
   },
   en: {
     home: '← Back to home',
-    eyebrow: 'Ví Smart',
+    eyebrow: 'Heo Xinh',
     title: 'Privacy policy',
     updated: 'Last updated: 2 August 2026',
     intro:
-      'Ví Smart respects your privacy. This policy explains the information needed to operate the money-tracking app and how it is used.',
+      'Heo Xinh respects your privacy. This policy explains the information needed to operate its finance and entertainment features and how it is used.',
     sections: [
       {
         title: '1. Information we collect',
-        paragraphs: ['When you create and use an account, Ví Smart may store:'],
+        paragraphs: ['When you create and use an account, Heo Xinh may store:'],
         items: [
           'Account details such as your email address, phone number, and encrypted password.',
           'Information you choose to enter: income and expense transactions, categories, payment methods, notes, and debts.',
@@ -193,8 +193,8 @@ export const privacyCopy: Record<Locale, PrivacyCopy> = {
         items: [
           'Show your money journal, reports, and financial summaries when you request them.',
           'Authenticate your account, protect your sign-in session, and help when you request support.',
-          'Improve the reliability, safety, and user experience of Ví Smart.',
-          'Ví Smart does not sell or rent your personal financial information to third parties for advertising.',
+          'Improve the reliability, safety, and user experience of Heo Xinh.',
+          'Heo Xinh does not sell or rent your personal financial information to third parties for advertising.',
         ],
       },
       {
@@ -218,7 +218,7 @@ export const privacyCopy: Record<Locale, PrivacyCopy> = {
       {
         title: '6. Policy changes',
         paragraphs: [
-          'When important changes are made, we will update the date at the top of this page. Continuing to use Ví Smart after a new policy is published means you have reviewed and accepted the updated content.',
+          'When important changes are made, we will update the date at the top of this page. Continuing to use Heo Xinh after a new policy is published means you have reviewed and accepted the updated content.',
         ],
       },
       {

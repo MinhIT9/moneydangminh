@@ -6,13 +6,13 @@ import { landingCopy } from '@/i18n/landing-copy';
 import { LocaleProvider } from '@/i18n/locale-provider';
 import { getTranslations } from '@/i18n/server';
 
-const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://minhfinance.vn').replace(/\/$/, '');
+const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://heoxinh.vn').replace(/\/$/, '');
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Ví Smart | Thu chi rõ ràng, sống nhẹ nhàng',
+  title: 'Heo Xinh | Tiết kiệm và giải trí',
   description:
-    'Ví Smart giúp học sinh, sinh viên, gia đình trẻ và người làm tự do ghi thu chi nhanh, rõ ràng và dễ duy trì mỗi ngày.',
+    'Heo Xinh giúp bạn ghi thu chi rõ ràng, xây thói quen tiết kiệm và thư giãn với trò chơi trí tuệ.',
   keywords: [
     'quản lý chi tiêu',
     'ghi thu chi',
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'vi_VN',
     url: '/',
-    siteName: 'Ví Smart',
-    title: 'Ví Smart | Thu chi rõ ràng, sống nhẹ nhàng',
+    siteName: 'Heo Xinh',
+    title: 'Heo Xinh | Tiết kiệm và giải trí',
     description:
       'Một cuốn sổ thu chi gọn gàng để bạn biết tiền đang đi đâu và chủ động hơn mỗi tháng.',
     images: [
@@ -44,13 +44,13 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Ví Smart - Thu chi rõ ràng, sống nhẹ nhàng',
+        alt: 'Heo Xinh - Tiết kiệm và giải trí',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ví Smart | Thu chi rõ ràng, sống nhẹ nhàng',
+    title: 'Heo Xinh | Tiết kiệm và giải trí',
     description: 'Ghi thu chi nhanh, rõ ràng và dễ duy trì cho cuộc sống hằng ngày.',
     images: ['/opengraph-image'],
   },
@@ -101,7 +101,7 @@ export default async function HomePage() {
         <header className="landing__header">
           <Link className="landing__brand" href="/" aria-label={copy.homeLabel}>
             <span className="landing__brand-mark" aria-hidden="true">
-              V
+              🐷
             </span>
             <span>{t('brand.name')}</span>
           </Link>
@@ -307,7 +307,7 @@ export default async function HomePage() {
         <footer className="landing__footer">
           <Link className="landing__brand" href="/">
             <span className="landing__brand-mark" aria-hidden="true">
-              V
+              🐷
             </span>
             <span>{t('brand.name')}</span>
           </Link>

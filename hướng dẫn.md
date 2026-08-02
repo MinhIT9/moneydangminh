@@ -1,4 +1,4 @@
-# Hướng dẫn chạy Ví Smart
+# Hướng dẫn chạy Heo Xinh
 
 Tài liệu này dùng cho môi trường PowerShell trên Windows. Dự án cần Node.js `20.19+`, MariaDB và file `.env` hợp lệ.
 

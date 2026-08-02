@@ -20,7 +20,9 @@ export default async function PrivateLayout({ children }: Readonly<{ children: R
       <div className="app-shell">
         <aside className="sidebar">
           <Link className="brand" href="/dashboard" prefetch>
-            <span className="brand-mark">V</span>
+            <span className="brand-mark" aria-hidden="true">
+              🐷
+            </span>
             {t('brand.name')}
           </Link>
           <AppNavigation isAdmin={user.role === 'ADMIN'} />
@@ -37,7 +39,9 @@ export default async function PrivateLayout({ children }: Readonly<{ children: R
         <div>
           <header className="mobile-header">
             <Link className="brand" href="/dashboard" prefetch>
-              <span className="brand-mark">V</span>
+              <span className="brand-mark" aria-hidden="true">
+                🐷
+              </span>
               {t('brand.name')}
             </Link>
             <AppNavigation mobile isAdmin={user.role === 'ADMIN'} />
