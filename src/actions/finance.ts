@@ -137,18 +137,23 @@ export async function deleteTransactionAction(formData: FormData) {
           tx.debt.findFirst({ where: { id: payment.debtId, userId: user.id } }),
           tx.debtPayment.findMany({
             where: { debtId: payment.debtId, userId: user.id },
-            select: { amount: true },
+            select: { amount: true, isSettlement: true, paidOn: true },
           }),
         ]);
 
         if (debt) {
           const paid = remainingPayments.reduce((sum, item) => sum + Number(item.amount), 0);
-          const settled = paid >= Number(debt.originalAmount);
+          const settlementPayment = remainingPayments.find((item) => item.isSettlement);
+          const settled = Boolean(settlementPayment) || paid >= Number(debt.originalAmount);
+          const latestPaidOn = remainingPayments.reduce<Date | null>(
+            (latest, item) => (!latest || item.paidOn > latest ? item.paidOn : latest),
+            null,
+          );
           await tx.debt.update({
             where: { id: debt.id },
             data: {
               status: settled ? 'SETTLED' : 'ACTIVE',
-              settledOn: settled ? (debt.settledOn ?? transaction.occurredOn) : null,
+              settledOn: settled ? (settlementPayment?.paidOn ?? latestPaidOn) : null,
             },
           });
         }
@@ -389,6 +394,83 @@ export async function createDebtAction(formData: FormData) {
   redirect('/debts');
 }
 
+export async function updateDebtAction(formData: FormData) {
+  const user = await requireUser();
+  const id = formText(formData.get('id'));
+  const counterpartyResult = textSchema('Tên khoản nợ', 150).safeParse(
+    formText(formData.get('counterparty')),
+  );
+  const direction = formText(formData.get('direction'));
+
+  if (!id) redirectWithError('/debts', 'Không tìm thấy khoản nợ.');
+  if (!counterpartyResult.success) {
+    redirectWithError('/debts', counterpartyResult.error.issues[0].message);
+  }
+  if (direction !== 'I_OWE' && direction !== 'OWED_TO_ME') {
+    redirectWithError('/debts', 'Hướng khoản nợ không hợp lệ.');
+  }
+
+  try {
+    const originalAmount = parseVnd(formData.get('originalAmount'), 'Tổng khoản nợ');
+    const startedOn = parseDate(formData.get('startedOn'), 'Ngày bắt đầu');
+    const dueOn = parseOptionalDate(formData.get('dueOn'), 'Ngày đến hạn');
+    const note = formText(formData.get('note'));
+
+    await db.$transaction(async (tx) => {
+      const debt = await tx.debt.findFirst({
+        where: { id, userId: user.id },
+        include: {
+          payments: {
+            select: { amount: true, isSettlement: true, paidOn: true },
+          },
+        },
+      });
+      if (!debt) throw new Error('Không tìm thấy khoản nợ.');
+
+      const paid = debt.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      if (originalAmount < paid) {
+        throw new Error('Tổng khoản nợ không thể thấp hơn số tiền đã thanh toán.');
+      }
+
+      const settlementPayment = debt.payments.find((payment) => payment.isSettlement);
+      const settled = Boolean(settlementPayment) || paid >= originalAmount;
+      const latestPaidOn = debt.payments.reduce<Date | null>(
+        (latest, payment) => (!latest || payment.paidOn > latest ? payment.paidOn : latest),
+        null,
+      );
+
+      await tx.debt.update({
+        where: { id: debt.id },
+        data: {
+          counterparty: counterpartyResult.data,
+          direction,
+          originalAmount,
+          startedOn,
+          dueOn,
+          note: note || null,
+          status: settled ? 'SETTLED' : 'ACTIVE',
+          settledOn: settled ? (settlementPayment?.paidOn ?? latestPaidOn) : null,
+        },
+      });
+
+      if (debt.direction !== direction) {
+        await tx.transaction.updateMany({
+          where: { userId: user.id, debtId: debt.id },
+          data: { type: direction === 'I_OWE' ? 'EXPENSE' : 'INCOME' },
+        });
+      }
+    });
+  } catch (error) {
+    redirectWithError(
+      '/debts',
+      error instanceof Error ? error.message : 'Không thể cập nhật khoản nợ.',
+    );
+  }
+
+  refreshApp();
+  redirect('/debts');
+}
+
 export async function recordDebtPaymentAction(formData: FormData) {
   const user = await requireUser();
   const debtId = formText(formData.get('debtId'));
@@ -459,6 +541,82 @@ export async function recordDebtPaymentAction(formData: FormData) {
       '/debts',
       error instanceof Error ? error.message : 'Không thể ghi thanh toán.',
     );
+  }
+
+  refreshApp();
+  redirect('/debts');
+}
+
+export async function settleDebtAction(formData: FormData) {
+  const user = await requireUser();
+  const debtId = formText(formData.get('debtId'));
+  if (!debtId) redirectWithError('/debts', 'Không tìm thấy khoản nợ.');
+
+  try {
+    const paidOn = parseDate(formData.get('paidOn'), 'Ngày tất toán');
+    const paymentMethodId = await ensurePaymentMethod(
+      user.id,
+      selectedId(formData.get('paymentMethodId')),
+    );
+    const enteredAmount = formText(formData.get('amount'));
+    const note = formText(formData.get('note'));
+
+    await db.$transaction(async (tx) => {
+      const debt = await tx.debt.findFirst({
+        where: { id: debtId, userId: user.id, status: 'ACTIVE' },
+        include: { payments: { select: { amount: true } } },
+      });
+      if (!debt) throw new Error('Khoản nợ không còn hoạt động.');
+
+      const lockTimestamp = new Date(Math.max(Date.now(), debt.updatedAt.getTime() + 1));
+      const reservation = await tx.debt.updateMany({
+        where: { id: debt.id, userId: user.id, status: 'ACTIVE', updatedAt: debt.updatedAt },
+        data: { updatedAt: lockTimestamp },
+      });
+      if (reservation.count !== 1) {
+        throw new Error('Khoản nợ vừa được cập nhật. Vui lòng kiểm tra lại số tiền còn lại.');
+      }
+
+      const paid = debt.payments.reduce((total, payment) => total + Number(payment.amount), 0);
+      const remaining = Number(debt.originalAmount) - paid;
+      if (remaining <= 0) throw new Error('Khoản nợ này không còn số tiền cần tất toán.');
+
+      const amount = enteredAmount
+        ? parseVnd(formData.get('amount'), 'Số tiền tất toán')
+        : remaining;
+      if (amount > remaining) throw new Error('Số tiền tất toán vượt quá khoản còn lại.');
+
+      const transaction = await tx.transaction.create({
+        data: {
+          userId: user.id,
+          debtId: debt.id,
+          paymentMethodId,
+          type: debt.direction === 'I_OWE' ? 'EXPENSE' : 'INCOME',
+          amount,
+          note: note || `Tất toán khoản nợ: ${debt.counterparty}`,
+          occurredOn: paidOn,
+        },
+      });
+
+      await tx.debtPayment.create({
+        data: {
+          userId: user.id,
+          debtId: debt.id,
+          transactionId: transaction.id,
+          amount,
+          isSettlement: true,
+          paidOn,
+          note: note || null,
+        },
+      });
+
+      await tx.debt.update({
+        where: { id: debt.id },
+        data: { status: 'SETTLED', settledOn: paidOn },
+      });
+    });
+  } catch (error) {
+    redirectWithError('/debts', error instanceof Error ? error.message : 'Không thể tất toán.');
   }
 
   refreshApp();

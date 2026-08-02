@@ -14,9 +14,11 @@ export function DeleteDebtForm({ debtId, paymentCount }: DeleteDebtFormProps) {
   const confirmationInput = useRef<HTMLInputElement>(null);
 
   function confirmDeletion(event: React.FormEvent<HTMLFormElement>) {
-    if (paymentCount === 0) return;
-
-    const accepted = window.confirm(t('debt.deleteConfirm', { count: paymentCount }));
+    const accepted = window.confirm(
+      paymentCount > 0
+        ? t('debt.deleteConfirm', { count: paymentCount })
+        : t('debt.deleteConfirmEmpty'),
+    );
     if (!accepted) {
       event.preventDefault();
       return;
@@ -26,7 +28,7 @@ export function DeleteDebtForm({ debtId, paymentCount }: DeleteDebtFormProps) {
   }
 
   return (
-    <form action={deleteDebtAction} className="form-actions" onSubmit={confirmDeletion}>
+    <form action={deleteDebtAction} className="debt-delete-form" onSubmit={confirmDeletion}>
       <input type="hidden" name="id" value={debtId} />
       <input ref={confirmationInput} type="hidden" name="confirm" value="false" />
       <button className="button-danger" type="submit">

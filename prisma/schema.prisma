@@ -194,6 +194,7 @@ model DebtPayment {
   debtId        String   @map("debt_id") @db.VarChar(30)
   transactionId String?  @unique @map("transaction_id") @db.VarChar(30)
   amount        Decimal  @db.Decimal(15, 0)
+  isSettlement  Boolean  @default(false) @map("is_settlement")
   paidOn        DateTime @map("paid_on") @db.Date
   note          String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at")

@@ -20,10 +20,23 @@ export function toNumber(value: { toString(): string } | number) {
 }
 
 export function debtSummary(debt: {
+  status?: 'ACTIVE' | 'SETTLED';
   originalAmount: { toString(): string } | number;
-  payments: Array<{ amount: { toString(): string } | number }>;
+  payments: Array<{
+    amount: { toString(): string } | number;
+    isSettlement?: boolean;
+  }>;
 }) {
   const original = toNumber(debt.originalAmount);
   const paid = debt.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-  return { original, paid, remaining: Math.max(0, original - paid) };
+  const outstanding = Math.max(0, original - paid);
+  const isSettled =
+    debt.status === 'SETTLED' || debt.payments.some((payment) => payment.isSettlement === true);
+
+  return {
+    original,
+    paid,
+    remaining: isSettled ? 0 : outstanding,
+    settlementAdjustment: isSettled ? outstanding : 0,
+  };
 }
