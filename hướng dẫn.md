@@ -1,184 +1,152 @@
-1. Khi đang code hằng ngày
+# Hướng dẫn chạy Ví Smart
+
+Tài liệu này dùng cho môi trường PowerShell trên Windows. Dự án cần Node.js `20.19+`, MariaDB và file `.env` hợp lệ.
+
+> [!IMPORTANT]
+> Không đưa mật khẩu, `DATABASE_URL` hoặc `SESSION_SECRET` vào Git. Chỉ chỉnh chúng trong file `.env` cục bộ hoặc biến môi trường của máy chủ.
+
+## Chọn lệnh nhanh
+
+| Tình huống                                | Lệnh cần dùng           |
+| ----------------------------------------- | ----------------------- |
+| Code hằng ngày                            | `npm run dev`           |
+| Prisma Client lỗi hoặc vừa tải source     | `npm run dev:fresh`     |
+| Sửa `prisma/schema.prisma` khi phát triển | `npm run db:migrate`    |
+| Xem migration đã áp dụng chưa             | `npm run db:status`     |
+| Kiểm tra code trước khi đưa lên server    | `npm run check`         |
+| Tự format code và Markdown                | `npm run format`        |
+| Build thử bản production                  | `npm run build`         |
+| Chạy bản đã build                         | `npm run start`         |
+| Deploy thủ công: migration + build        | `npm run deploy`        |
+| Deploy và chạy ngay trong một terminal    | `npm run prod`          |
+| Tạo tài khoản quản trị đầu tiên           | `npm run db:seed-admin` |
+
+## 1. Bắt đầu lần đầu
+
+```powershell
+npm install
+Copy-Item .env.example .env
+```
+
+Mở `.env`, điền thông tin MariaDB và `SESSION_SECRET`, sau đó áp dụng các migration đã có:
+
+```powershell
+npm run db:deploy
 npm run dev
+```
 
-Sau đó mở:
+Mở ứng dụng tại [http://localhost:3000](http://localhost:3000). Nếu dùng ngrok, hãy dùng URL do ngrok tạo ở phiên chạy hiện tại; không ghi cứng URL đó vào tài liệu hay cấu hình public.
 
-http://localhost:3000
-hoặc: https://unpatiently-unintruded-rylie.ngrok-free.dev
+`npm install` tự chạy `postinstall`, vì vậy Prisma Client sẽ được generate sẵn. `db:deploy` chỉ áp dụng migration đã nằm trong thư mục `prisma/migrations`.
 
-Luồng làm việc:
+## 2. Code hằng ngày
 
-Sửa code
-→ Ctrl + S
-→ Next.js tự cập nhật
+```powershell
+npm run dev
+```
 
-Không cần chạy:
+Giữ terminal này mở. Sau khi sửa file và nhấn `Ctrl + S`, Next.js tự cập nhật trang qua Fast Refresh. Không cần chạy `build` hoặc `prod` sau mỗi lần sửa code.
 
-npm run build
+## 3. Khi Prisma Client lỗi hoặc vừa tải source
 
-và cũng không cần chạy:
+Trước tiên, dừng server phát triển đang chạy bằng `Ctrl + C`, rồi chạy:
 
-npm run prod
-2. Khi vừa tải source hoặc Prisma bị lỗi
-
-Chạy:
-
+```powershell
 npm run dev:fresh
+```
 
-Lệnh này thực hiện:
+Lệnh này generate lại Prisma Client rồi mở Next.js development server. Dùng khi vừa xóa `node_modules`, vừa nhận source mới hoặc gặp lỗi không tìm thấy Prisma Client.
 
-Prisma generate
-→ Next.js development server
+## 4. Khi sửa `prisma/schema.prisma`
 
-Chỉ cần dùng khi:
+Chỉ dùng quy trình này ở môi trường phát triển:
 
-Máy mới tải source về.
-Vừa xóa node_modules.
-Prisma Client chưa được tạo.
-Có lỗi không tìm thấy Prisma Client.
-Vừa thay đổi cấu hình generate của Prisma.
-
-Còn ngày thường vẫn dùng:
-
-npm run dev
-3. Khi sửa schema.prisma
-
-Ví dụ bạn thêm bảng game, trận đấu hoặc bảng xếp hạng:
-
-model GameMatch {
-  id        Int      @id @default(autoincrement())
-  gameType  String
-  createdAt DateTime @default(now())
-}
-
-Chạy:
-
+```powershell
+# Dừng npm run dev nếu nó đang chạy.
 npm run db:migrate
+```
 
-Prisma sẽ:
+Prisma sẽ hỏi tên migration, ví dụ `add-budget-table`. Script sẽ:
 
-Tạo migration
-→ cập nhật database development
-→ tạo lại Prisma Client
+1. Tạo migration mới.
+2. Áp dụng migration vào database development.
+3. Generate lại Prisma Client.
 
-Trong Prisma 7, prisma migrate dev không còn tự động chạy prisma generate, nên script trên chủ động generate lại sau migration.
+Sau đó chạy lại ứng dụng:
 
-Prisma sẽ hỏi tên migration, chẳng hạn:
-
-add-game-match
-
-Sau đó tiếp tục chạy web:
-
+```powershell
 npm run dev
-4. Kiểm tra code trước khi đưa lên production
+```
 
-Chạy:
+> [!WARNING]
+> Không chạy `npm run db:migrate` trên database production. Production chỉ dùng `npm run db:deploy` để áp dụng migration đã được tạo và kiểm tra trong source.
 
+## 5. Kiểm tra và build production
+
+Trước khi đưa code lên server:
+
+```powershell
 npm run check
+npm run build
+```
 
-Nó kiểm tra lần lượt:
+`check` chạy ESLint, TypeScript và Prettier. Nếu Prettier báo lỗi, chạy:
 
-ESLint
-→ TypeScript
-→ Prettier
-
-Nếu muốn tự sửa định dạng:
-
+```powershell
 npm run format
+```
 
-Từ Next.js 16, next build không còn tự chạy lint, nên giữ riêng lệnh check là hợp lý.
+`build` tự chạy `prebuild`, nên Prisma Client luôn được generate trước `next build`. Sau khi build thành công, thử bản production tại máy:
 
-5. Build thử production
-npm run build
+```powershell
+npm run start
+```
 
-Bạn không cần tự chạy db:generate vì npm tự chạy:
+## 6. Deploy thủ công
 
-prebuild
-→ db:generate
-→ next build
+Khi máy chủ đã có source, `.env` và dependencies:
 
-Sau khi build thành công:
+```powershell
+npm run deploy
+npm run start
+```
 
-npm start
+`deploy` thực hiện theo thứ tự:
 
-Luồng đầy đủ:
+```text
+prisma migrate deploy → prisma generate → next build
+```
 
-npm run build
-npm start
-6. Gộp migration, build và start
+Nếu bạn chạy trực tiếp trong một terminal, có thể gộp hai bước:
 
-Khi server chưa chạy hoặc bạn đã tắt bản cũ:
-
+```powershell
 npm run prod
+```
 
-Lệnh này thực hiện:
+`npm run prod` giữ terminal để phục vụ website. Nếu cổng `3000` đang được dùng, hãy dừng tiến trình cũ trước bằng `Ctrl + C`, rồi chạy lại lệnh. Khi triển khai ổn định lâu dài, nên để PM2, Docker hoặc dịch vụ hosting quản lý lệnh `npm run start`.
 
-prisma migrate deploy
-→ prisma generate
-→ next build
-→ next start
+## 7. Kiểm tra database và tạo admin
 
-prisma migrate deploy chỉ áp dụng các migration đang chờ và phù hợp cho production; không nên dùng prisma migrate dev trên database thật.
+Kiểm tra trạng thái migration:
 
-Lưu ý
+```powershell
+npm run db:status
+```
 
-Nếu bản production cũ vẫn đang chạy ở cổng 3000, npm run prod có thể báo:
+Nếu cần tạo tài khoản quản trị đầu tiên, cấu hình các biến `ADMIN_*` trong `.env`, rồi chạy:
 
-EADDRINUSE: address already in use
-
-Khi đó phải tắt tiến trình cũ trước:
-
-Ctrl + C
-npm run prod
-7. Seed tài khoản admin
-
-Chạy:
-
+```powershell
 npm run db:seed-admin
+```
 
-Lệnh này:
+Sau khi tạo xong, xóa `ADMIN_PASSWORD` khỏi `.env` nếu không còn cần dùng.
 
-Generate Prisma Client
-→ chạy scripts/seed-admin.ts
+## Quy trình dễ nhớ
 
-Nên thiết kế script seed theo kiểu:
-
-Admin chưa tồn tại → tạo mới
-Admin đã tồn tại → bỏ qua hoặc cập nhật
-
-Như vậy chạy lại nhiều lần không tạo tài khoản trùng.
-
-8. Quy trình sử dụng dễ nhớ
-Làm web hằng ngày
-npm run dev
-Sửa database/schema
-npm run db:migrate
-npm run dev
-Kiểm tra toàn bộ code
-npm run check
-Chạy thử production
-npm run build
-npm start
-Production lần đầu hoặc server đã dừng
-npm run prod
-Máy mới hoặc Prisma lỗi
-npm run dev:fresh
-Bảng nhớ nhanh
-Tình huống	Lệnh
-Code hằng ngày	npm run dev
-Prisma chưa generate	npm run dev:fresh
-Sửa schema.prisma	npm run db:migrate
-Kiểm tra code	npm run check
-Format code	npm run format
-Build production	npm run build
-Chạy bản đã build	npm start
-Migration + build + start	npm run prod
-Tạo tài khoản admin	npm run db:seed-admin
-
-Bộ này không phải chạy deploy trước khi dùng dev. Hai môi trường tách biệt:
-
-npm run dev
-= môi trường đang phát triển, sửa là cập nhật
-
-npm run build + npm start
-= môi trường production, sửa code phải build lại
+```text
+Code mỗi ngày        npm run dev
+Đổi database/schema  npm run db:migrate → npm run dev
+Trước production     npm run check → npm run build
+Deploy production    npm run deploy → npm run start
+Prisma có vấn đề     dừng dev → npm run dev:fresh
+```

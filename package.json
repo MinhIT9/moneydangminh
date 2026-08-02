@@ -1,20 +1,27 @@
 {
   "name": "moneydangminh",
-  "version": "7.5.0",
+  "version": "7.5.1",
   "private": true,
   "description": "Ví Smart — personal finance tracker built with Next.js and MariaDB.",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run db:generate && next build",
+    "dev:fresh": "npm run db:generate && next dev",
+    "prebuild": "npm run db:generate",
+    "build": "next build",
     "start": "next start",
+    "deploy": "npm run db:deploy && npm run build",
+    "prod": "npm run deploy && npm run start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check": "npm run lint && npm run typecheck && npm run format:check",
     "db:generate": "node scripts/prisma-generate.mjs",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate dev && npm run db:generate",
     "db:deploy": "prisma migrate deploy",
-    "db:seed-admin": "npm run db:generate && tsx scripts/seed-admin.ts"
+    "db:status": "prisma migrate status",
+    "db:seed-admin": "npm run db:generate && tsx scripts/seed-admin.ts",
+    "postinstall": "npm run db:generate"
   },
   "engines": {
     "node": ">=20.19.0"
