@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { updateTransactionAction } from '@/actions/finance';
-import { MoneyInput } from '@/components/money-input';
 import { SubmitButton } from '@/components/submit-button';
+import { TransactionAmountFields } from '@/components/transaction-amount-fields';
 import { useLocale } from '@/i18n/locale-provider';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -14,6 +14,8 @@ type EditTransactionFormProps = {
     id: string;
     type: TransactionType;
     amount: string;
+    amountExpression?: string | null;
+    tipExpression?: string | null;
     note: string | null;
     occurredOn: string;
     categoryId: string | null;
@@ -32,6 +34,10 @@ export function EditTransactionForm({
 }: EditTransactionFormProps) {
   const { t } = useLocale();
   const [type, setType] = useState<TransactionType>(transaction.type);
+  const [amountExpression, setAmountExpression] = useState(
+    transaction.amountExpression ?? transaction.amount,
+  );
+  const [tipExpression, setTipExpression] = useState(transaction.tipExpression ?? '');
   const matchingCategories = useMemo(
     () => categories.filter((category) => category.type === type),
     [categories, type],
@@ -70,10 +76,13 @@ export function EditTransactionForm({
               </button>
             </div>
           </fieldset>
-          <div className="field">
-            <label htmlFor="edit-amount">{t('common.amount')}</label>
-            <MoneyInput id="edit-amount" name="amount" defaultValue={transaction.amount} required />
-          </div>
+          <TransactionAmountFields
+            idPrefix="edit-"
+            amountExpression={amountExpression}
+            onAmountExpressionChange={setAmountExpression}
+            tipExpression={tipExpression}
+            onTipExpressionChange={setTipExpression}
+          />
           <div className="field">
             <label htmlFor="edit-categoryId">{t('transaction.category')}</label>
             <select

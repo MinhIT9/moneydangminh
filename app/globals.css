@@ -189,18 +189,21 @@ a {
   box-shadow: 0 0 0 3px rgba(103, 92, 232, 0.12);
 }
 
-.money-input {
+.money-input,
+.money-expression-input {
   position: relative;
   display: block;
 }
 
-.money-input input {
+.money-input input,
+.money-expression-input input {
   padding-right: 39px;
   font-variant-numeric: tabular-nums;
   font-weight: 750;
 }
 
-.money-input > span {
+.money-input > span,
+.money-expression-input > span {
   position: absolute;
   top: 50%;
   right: 13px;
@@ -209,6 +212,101 @@ a {
   font-weight: 850;
   pointer-events: none;
   transform: translateY(-50%);
+}
+
+.money-expression-input input {
+  letter-spacing: 0.01em;
+}
+
+.field-label {
+  color: #66738d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.expression-input__hint {
+  min-height: 17px;
+  margin: -1px 1px 0;
+  color: #8490a8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.calculated-money {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 11px 13px;
+  border: 1px solid #dfe4ef;
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 92% 5%, rgba(147, 96, 237, 0.12), transparent 42%),
+    linear-gradient(135deg, #fbfaff, #f6f5ff);
+  color: var(--purple);
+  font-variant-numeric: tabular-nums;
+}
+
+.calculated-money__value {
+  overflow: hidden;
+  color: inherit;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.25px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calculated-money.is-empty {
+  border-style: dashed;
+  background: #fbfcff;
+  color: #8a96ae;
+}
+
+.calculated-money.is-empty .calculated-money__value {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.calculated-money.is-invalid,
+.transaction-recorded-total.is-invalid {
+  border-color: #ffc9d1;
+  background: #fff7f8;
+  color: #c34559;
+}
+
+.calculated-money.is-invalid .calculated-money__value {
+  font-size: 12px;
+  font-weight: 800;
+  white-space: normal;
+}
+
+.transaction-recorded-total {
+  display: flex;
+  min-height: 59px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 15px;
+  border: 1px solid #dcd7ff;
+  border-radius: 13px;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(147, 96, 237, 0.16), transparent 35%),
+    linear-gradient(100deg, #f5f3ff, #fbfaff);
+  color: #5d53ce;
+}
+
+.transaction-recorded-total span {
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.transaction-recorded-total strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.45px;
+  white-space: nowrap;
 }
 
 .type-field {
@@ -511,6 +609,21 @@ a {
 
 .page-head p {
   margin: 5px 0 0;
+}
+
+.dashboard-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.dashboard-head-actions > div {
+  min-width: 208px;
+}
+
+.dashboard-head-actions .button {
+  white-space: nowrap;
 }
 
 .cards-grid {
@@ -1261,6 +1374,33 @@ a {
   .page-head > .button,
   .page-head > .button-ghost {
     width: 100%;
+  }
+
+  .dashboard-head-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .dashboard-head-actions > div {
+    min-width: 0;
+  }
+
+  .dashboard-head-actions .button {
+    width: 100%;
+  }
+
+  .calculated-money {
+    min-height: 52px;
+    justify-content: flex-start;
+  }
+
+  .calculated-money__value {
+    text-align: left;
+  }
+
+  .transaction-recorded-total strong {
+    font-size: 18px;
   }
 
   .cards-grid,

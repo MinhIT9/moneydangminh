@@ -107,6 +107,7 @@ export default async function DashboardPage({
   ];
   const hasMonthTransactions = recentTransactions.length > 0;
   const selectedMonthLabel = formatSelectedMonth(month, locale);
+  const recordTransactionHref = `/transactions?month=${encodeURIComponent(month)}&record=1`;
 
   return (
     <>
@@ -117,7 +118,12 @@ export default async function DashboardPage({
           </h1>
           <p className="muted">{t('dashboard.description')}</p>
         </div>
-        <DashboardMonthFilter value={month} activeMonths={activeMonths} />
+        <div className="dashboard-head-actions">
+          <Link className="button" href={recordTransactionHref} prefetch>
+            + {t('transaction.record')}
+          </Link>
+          <DashboardMonthFilter value={month} activeMonths={activeMonths} />
+        </div>
       </header>
 
       <section className="cards-grid" aria-label={t('dashboard.summary')}>
@@ -197,7 +203,7 @@ export default async function DashboardPage({
               <strong>{t('dashboard.emptyMonthTitle', { month: selectedMonthLabel })}</strong>
               <span>{t('dashboard.emptyMonthDescription')}</span>
               <div className="dashboard-empty-card__actions">
-                <Link className="button" href={`/transactions?month=${month}`} prefetch>
+                <Link className="button" href={recordTransactionHref} prefetch>
                   {t('dashboard.emptyMonthAction')}
                 </Link>
                 {month !== currentMonth ? (

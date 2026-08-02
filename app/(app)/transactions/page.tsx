@@ -20,12 +20,15 @@ export default async function TransactionsPage({
     q?: string;
     error?: string;
     edit?: string;
+    record?: string;
   }>;
 }) {
   const user = await requireUser();
   const { t } = await getTranslations();
   const params = await searchParams;
   const { start, end, value: month } = getMonthRange(params.month ?? monthInputValue());
+  const today = dateInputValue(new Date());
+  const initialTransactionDate = month === monthInputValue() ? today : `${month}-01`;
   const query = params.q?.trim() ?? '';
   const type: TransactionType | undefined =
     params.type === 'INCOME'
@@ -47,6 +50,9 @@ export default async function TransactionsPage({
         id: true,
         type: true,
         amount: true,
+        amountExpression: true,
+        tipAmount: true,
+        tipExpression: true,
         note: true,
         occurredOn: true,
         category: { select: { name: true } },
@@ -72,6 +78,9 @@ export default async function TransactionsPage({
             id: true,
             type: true,
             amount: true,
+            amountExpression: true,
+            tipAmount: true,
+            tipExpression: true,
             note: true,
             occurredOn: true,
             categoryId: true,
@@ -100,8 +109,9 @@ export default async function TransactionsPage({
           type: category.type,
         }))}
         methods={methods.map((method) => ({ id: method.id, name: method.name }))}
-        open={Boolean(params.error)}
-        today={dateInputValue(new Date())}
+        open={Boolean(params.error) || params.record === '1'}
+        today={initialTransactionDate}
+        month={month}
       />
 
       {editingTransaction && !editingTransaction.debtPayment ? (
@@ -110,6 +120,12 @@ export default async function TransactionsPage({
             id: editingTransaction.id,
             type: editingTransaction.type,
             amount: editingTransaction.amount.toString(),
+            amountExpression: editingTransaction.amountExpression,
+            tipExpression:
+              editingTransaction.tipExpression ??
+              (Number(editingTransaction.tipAmount) > 0
+                ? editingTransaction.tipAmount.toString()
+                : null),
             note: editingTransaction.note,
             occurredOn: dateInputValue(editingTransaction.occurredOn),
             categoryId: editingTransaction.categoryId,
@@ -160,6 +176,18 @@ export default async function TransactionsPage({
                       <span className="cell-title">
                         {transaction.category?.name ?? t('common.uncategorized')}
                       </span>
+                      {transaction.amountExpression ? (
+                        <span className="cell-note transaction-expression">
+                          {t('transaction.amountBreakdown', {
+                            expression: transaction.amountExpression,
+                          })}
+                        </span>
+                      ) : null}
+                      {transaction.tipExpression ? (
+                        <span className="cell-note transaction-expression">
+                          {t('transaction.tipBreakdown', { expression: transaction.tipExpression })}
+                        </span>
+                      ) : null}
                       {transaction.note ? (
                         <span className="cell-note">{transaction.note}</span>
                       ) : null}

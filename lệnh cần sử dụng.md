@@ -1,7 +1,0 @@
-Copy-Item .env.example .env
-
-npm run db:deploy
-npm run db:seed-admin   # tùy chọn: tạo admin đầu tiên
-npm run dev
-
-npm run build

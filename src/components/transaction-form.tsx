@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { createTransactionAction } from '@/actions/finance';
-import { MoneyInput } from '@/components/money-input';
 import { SubmitButton } from '@/components/submit-button';
+import { TransactionAmountFields } from '@/components/transaction-amount-fields';
 import { useLocale } from '@/i18n/locale-provider';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -13,11 +13,14 @@ type TransactionFormProps = {
   methods: Array<{ id: string; name: string }>;
   open: boolean;
   today: string;
+  month: string;
 };
 
-export function TransactionForm({ categories, methods, open, today }: TransactionFormProps) {
+export function TransactionForm({ categories, methods, open, today, month }: TransactionFormProps) {
   const { t } = useLocale();
   const [type, setType] = useState<TransactionType>('EXPENSE');
+  const [amountExpression, setAmountExpression] = useState('');
+  const [tipExpression, setTipExpression] = useState('');
   const matchingCategories = useMemo(
     () => categories.filter((category) => category.type === type),
     [categories, type],
@@ -27,6 +30,7 @@ export function TransactionForm({ categories, methods, open, today }: Transactio
     <details className="form-reveal" open={open}>
       <summary>＋ {t('transaction.record')}</summary>
       <form action={createTransactionAction} className="form-card">
+        <input type="hidden" name="month" value={month} />
         <div className="form-grid">
           <fieldset className="field full type-field">
             <legend>{t('transaction.type')}</legend>
@@ -54,10 +58,12 @@ export function TransactionForm({ categories, methods, open, today }: Transactio
               </button>
             </div>
           </fieldset>
-          <div className="field">
-            <label htmlFor="amount">{t('common.amount')}</label>
-            <MoneyInput id="amount" name="amount" required />
-          </div>
+          <TransactionAmountFields
+            amountExpression={amountExpression}
+            onAmountExpressionChange={setAmountExpression}
+            tipExpression={tipExpression}
+            onTipExpressionChange={setTipExpression}
+          />
           <div className="field">
             <label htmlFor="categoryId">{t('transaction.category')}</label>
             <select id="categoryId" name="categoryId" defaultValue="">

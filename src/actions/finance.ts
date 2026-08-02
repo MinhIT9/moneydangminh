@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { parseDate, parseOptionalDate } from '@/lib/date';
-import { parseOptionalVnd, parseVnd } from '@/lib/money';
+import {
+  parseOptionalVndExpression,
+  parseVnd,
+  parseVndExpression,
+  sumVndAmounts,
+} from '@/lib/money';
 import { db } from '@/lib/db';
 import { formText, textSchema } from '@/lib/validation';
 
@@ -32,6 +37,22 @@ function selectedId(value: FormDataEntryValue | null) {
   return id || null;
 }
 
+function transactionAmounts(formData: FormData) {
+  // `amount` is retained as a fallback for older forms and debt-related flows.
+  const baseExpression = parseVndExpression(
+    formData.has('amountExpression') ? formData.get('amountExpression') : formData.get('amount'),
+  );
+  const tipExpression = parseOptionalVndExpression(formData.get('tipExpression'));
+  const tipAmount = tipExpression?.amount ?? 0;
+
+  return {
+    amount: sumVndAmounts([baseExpression.amount, tipAmount]),
+    amountExpression: baseExpression.expression,
+    tipAmount,
+    tipExpression: tipExpression?.expression ?? null,
+  };
+}
+
 async function ensureCategory(userId: string, id: string | null, type: 'INCOME' | 'EXPENSE') {
   if (!id) return null;
   const category = await db.category.findFirst({ where: { id, userId, type, isArchived: false } });
@@ -48,10 +69,11 @@ async function ensurePaymentMethod(userId: string, id: string | null) {
 
 export async function createTransactionAction(formData: FormData) {
   const user = await requireUser();
+  const returnPath = transactionPath(formText(formData.get('month')));
   const rawType = formText(formData.get('type'));
   const type = rawType === 'INCOME' || rawType === 'EXPENSE' ? rawType : null;
 
-  if (!type) redirectWithError('/transactions', 'Loại giao dịch không hợp lệ.');
+  if (!type) redirectWithError(returnPath, 'Loại giao dịch không hợp lệ.');
 
   try {
     const categoryId = await ensureCategory(user.id, selectedId(formData.get('categoryId')), type);
@@ -60,6 +82,7 @@ export async function createTransactionAction(formData: FormData) {
       selectedId(formData.get('paymentMethodId')),
     );
     const note = formText(formData.get('note'));
+    const amounts = transactionAmounts(formData);
 
     await db.transaction.create({
       data: {
@@ -67,20 +90,20 @@ export async function createTransactionAction(formData: FormData) {
         categoryId,
         paymentMethodId,
         type,
-        amount: parseVnd(formData.get('amount')),
+        ...amounts,
         note: note || null,
         occurredOn: parseDate(formData.get('occurredOn')),
       },
     });
   } catch (error) {
     redirectWithError(
-      '/transactions',
+      returnPath,
       error instanceof Error ? error.message : 'Không thể lưu giao dịch.',
     );
   }
 
   refreshApp();
-  redirect('/transactions');
+  redirect(returnPath);
 }
 
 export async function deleteTransactionAction(formData: FormData) {
@@ -167,6 +190,7 @@ export async function updateTransactionAction(formData: FormData) {
       selectedId(formData.get('paymentMethodId')),
     );
     const note = formText(formData.get('note'));
+    const amounts = transactionAmounts(formData);
 
     await db.transaction.update({
       where: { id: transaction.id },
@@ -174,7 +198,7 @@ export async function updateTransactionAction(formData: FormData) {
         categoryId,
         paymentMethodId,
         type,
-        amount: parseVnd(formData.get('amount')),
+        ...amounts,
         note: note || null,
         occurredOn: parseDate(formData.get('occurredOn')),
       },

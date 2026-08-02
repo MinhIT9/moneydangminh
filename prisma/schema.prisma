@@ -143,6 +143,9 @@ model Transaction {
   debtId          String?         @map("debt_id") @db.VarChar(30)
   type            TransactionType
   amount          Decimal         @db.Decimal(15, 0)
+  amountExpression String?        @map("amount_expression") @db.VarChar(500)
+  tipAmount       Decimal         @default(0) @map("tip_amount") @db.Decimal(15, 0)
+  tipExpression   String?         @map("tip_expression") @db.VarChar(500)
   note            String?         @db.Text
   occurredOn      DateTime        @map("occurred_on") @db.Date
   createdAt       DateTime        @default(now()) @map("created_at")
