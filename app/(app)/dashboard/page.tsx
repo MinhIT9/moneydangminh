@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import { DashboardMonthFilter } from '@/components/dashboard-month-filter';
+import { DashboardIcon, DashboardIllustration } from '@/components/dashboard-visuals';
+import { getTranslations } from '@/i18n/server';
 import { requireUser } from '@/lib/auth';
+import { dateInputValue, monthInputValue } from '@/lib/date';
+import { db } from '@/lib/db';
 import { debtSummary, getMonthRange, toNumber } from '@/lib/finance';
 import { formatVnd } from '@/lib/money';
-import { db } from '@/lib/db';
-import { monthInputValue } from '@/lib/date';
-import { DashboardMonthFilter } from '@/components/dashboard-month-filter';
-import { getTranslations } from '@/i18n/server';
 
 function formatSelectedMonth(value: string, locale: 'vi' | 'en') {
   const [year, month] = value.split('-').map(Number);
@@ -14,6 +15,19 @@ function formatSelectedMonth(value: string, locale: 'vi' | 'en') {
     month: 'long',
     year: 'numeric',
   }).format(new Date(year, month - 1, 1));
+}
+
+function formatDebtDate(value: Date, locale: 'vi' | 'en') {
+  return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(value);
+}
+
+function percentage(value: number, total: number) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
 export default async function DashboardPage({
@@ -26,6 +40,7 @@ export default async function DashboardPage({
   const params = await searchParams;
   const { start, end, value: month } = getMonthRange(params.month ?? monthInputValue());
   const currentMonth = monthInputValue();
+  const todayKey = dateInputValue(new Date());
 
   const [
     transactionTotals,
@@ -38,7 +53,8 @@ export default async function DashboardPage({
     db.transaction.groupBy({
       by: ['type'],
       where: { userId: user.id, occurredOn: { gte: start, lt: end } },
-      _sum: { amount: true },
+      _sum: { amount: true, tipAmount: true },
+      _count: { _all: true },
     }),
     db.transaction.findMany({
       where: { userId: user.id, occurredOn: { gte: start, lt: end } },
@@ -46,7 +62,9 @@ export default async function DashboardPage({
         id: true,
         type: true,
         amount: true,
+        tipAmount: true,
         note: true,
+        occurredOn: true,
         category: { select: { name: true } },
         paymentMethod: { select: { name: true } },
       },
@@ -65,10 +83,13 @@ export default async function DashboardPage({
     db.debt.findMany({
       where: { userId: user.id, status: 'ACTIVE' },
       select: {
+        id: true,
+        counterparty: true,
+        direction: true,
         originalAmount: true,
+        dueOn: true,
         payments: { select: { amount: true } },
       },
-      orderBy: { dueOn: 'asc' },
     }),
     db.category.findMany({
       where: { userId: user.id },
@@ -81,13 +102,51 @@ export default async function DashboardPage({
     }),
   ]);
 
-  const income = toNumber(
-    transactionTotals.find((total) => total.type === 'INCOME')?._sum.amount ?? 0,
+  const incomeTotal = transactionTotals.find((total) => total.type === 'INCOME');
+  const expenseTotal = transactionTotals.find((total) => total.type === 'EXPENSE');
+  const income = toNumber(incomeTotal?._sum.amount ?? 0);
+  const expense = toNumber(expenseTotal?._sum.amount ?? 0);
+  const tips = toNumber(incomeTotal?._sum.tipAmount ?? 0);
+  const net = income - expense;
+  const transactionCount = transactionTotals.reduce(
+    (total, transaction) => total + transaction._count._all,
+    0,
   );
-  const expense = toNumber(
-    transactionTotals.find((total) => total.type === 'EXPENSE')?._sum.amount ?? 0,
+  const expenseRatio = percentage(expense, income);
+  const tipShare = percentage(tips, income);
+  const retentionRate = income > 0 ? Math.round((net / income) * 100) : 0;
+  const cashflowMax = Math.max(income, expense, 1);
+
+  const debtItems = debts
+    .map((debt) => {
+      const summary = debtSummary(debt);
+      const dueKey = debt.dueOn ? dateInputValue(debt.dueOn) : null;
+
+      return {
+        ...debt,
+        ...summary,
+        dueKey,
+        isOverdue: Boolean(dueKey && dueKey < todayKey),
+      };
+    })
+    .filter((debt) => debt.remaining > 0)
+    .sort((debtA, debtB) => {
+      if (debtA.dueKey && debtB.dueKey) return debtA.dueKey.localeCompare(debtB.dueKey);
+      if (debtA.dueKey) return -1;
+      if (debtB.dueKey) return 1;
+      return debtA.counterparty.localeCompare(debtB.counterparty, locale);
+    });
+  const payableDebts = debtItems.filter((debt) => debt.direction === 'I_OWE');
+  const lentDebts = debtItems.filter((debt) => debt.direction === 'OWED_TO_ME');
+  const debtsDueThisMonth = payableDebts.filter(
+    (debt) => debt.dueOn && monthInputValue(debt.dueOn) === month,
   );
-  const remainingDebt = debts.reduce((sum, debt) => sum + debtSummary(debt).remaining, 0);
+  const payableAmount = payableDebts.reduce((total, debt) => total + debt.remaining, 0);
+  const lentAmount = lentDebts.reduce((total, debt) => total + debt.remaining, 0);
+  const dueThisMonthAmount = debtsDueThisMonth.reduce((total, debt) => total + debt.remaining, 0);
+  const overduePayableCount = payableDebts.filter((debt) => debt.isOverdue).length;
+  const upcomingDebts = debtItems.slice(0, 5);
+
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
   const categoryTotals = new Map<string, number>();
 
@@ -105,79 +164,298 @@ export default async function DashboardPage({
   const activeMonths = [
     ...new Set(transactionDates.map((transaction) => monthInputValue(transaction.occurredOn))),
   ];
-  const hasMonthTransactions = recentTransactions.length > 0;
   const selectedMonthLabel = formatSelectedMonth(month, locale);
   const recordTransactionHref = `/transactions?month=${encodeURIComponent(month)}&record=1`;
 
   return (
-    <>
-      <header className="page-head">
-        <div>
+    <div className="dashboard-page">
+      <header className="dashboard-hero">
+        <div className="dashboard-hero__copy">
+          <span className="dashboard-hero__eyebrow">
+            <DashboardIcon name="sparkles" />
+            {t('dashboard.overviewEyebrow')}
+          </span>
           <h1>
             {t('dashboard.greeting', { name: user.displayName || t('dashboard.defaultName') })}
           </h1>
-          <p className="muted">{t('dashboard.description')}</p>
+          <p>{t('dashboard.periodDescription', { month: selectedMonthLabel })}</p>
+          <div className="dashboard-hero__chips">
+            <span>
+              <DashboardIcon name="receipt" />
+              {t('dashboard.transactionCount', { count: transactionCount })}
+            </span>
+            <span className={net >= 0 ? 'is-positive' : 'is-negative'}>
+              <DashboardIcon name={net >= 0 ? 'arrow-up' : 'arrow-down'} />
+              {net >= 0 ? t('dashboard.netPositive') : t('dashboard.netNegative')}
+            </span>
+          </div>
+          <div className="dashboard-head-actions">
+            <Link className="button" href={recordTransactionHref} prefetch>
+              + {t('transaction.record')}
+            </Link>
+            <DashboardMonthFilter value={month} activeMonths={activeMonths} />
+          </div>
         </div>
-        <div className="dashboard-head-actions">
-          <Link className="button" href={recordTransactionHref} prefetch>
-            + {t('transaction.record')}
-          </Link>
-          <DashboardMonthFilter value={month} activeMonths={activeMonths} />
+        <div className="dashboard-hero__visual">
+          <DashboardIllustration />
         </div>
       </header>
 
-      <section className="cards-grid" aria-label={t('dashboard.summary')}>
-        <article className="metric-card">
-          <small>{t('dashboard.totalIncome')}</small>
+      <section className="dashboard-metrics-grid" aria-label={t('dashboard.summary')}>
+        <article className="metric-card dashboard-metric dashboard-metric--income">
+          <div className="dashboard-metric__head">
+            <span className="dashboard-metric__icon">
+              <DashboardIcon name="arrow-up" />
+            </span>
+            <small>{t('dashboard.totalIncome')}</small>
+          </div>
           <strong className="amount-income">{formatVnd(income)}</strong>
+          <span>{t('dashboard.transactionCount', { count: transactionCount })}</span>
         </article>
-        <article className="metric-card">
-          <small>{t('dashboard.totalExpense')}</small>
+        <article className="metric-card dashboard-metric dashboard-metric--expense">
+          <div className="dashboard-metric__head">
+            <span className="dashboard-metric__icon">
+              <DashboardIcon name="arrow-down" />
+            </span>
+            <small>{t('dashboard.totalExpense')}</small>
+          </div>
           <strong className="amount-expense">{formatVnd(expense)}</strong>
+          <span>
+            {income > 0
+              ? t('dashboard.expenseShare', { percent: expenseRatio })
+              : t('dashboard.noIncomeComparison')}
+          </span>
         </article>
-        <article className="metric-card">
-          <small>{t('dashboard.net')}</small>
-          <strong className="amount-net">{formatVnd(income - expense)}</strong>
+        <article className="metric-card dashboard-metric dashboard-metric--net">
+          <div className="dashboard-metric__head">
+            <span className="dashboard-metric__icon">
+              <DashboardIcon name="scale" />
+            </span>
+            <small>{t('dashboard.net')}</small>
+          </div>
+          <strong className={net >= 0 ? 'amount-income' : 'amount-expense'}>
+            {formatVnd(net)}
+          </strong>
+          <span>{net >= 0 ? t('dashboard.netPositive') : t('dashboard.netNegative')}</span>
         </article>
-        <Link className="metric-card" href="/debts" prefetch>
-          <small>{t('dashboard.remainingDebt')}</small>
-          <strong>{formatVnd(remainingDebt)}</strong>
+        <article className="metric-card dashboard-metric dashboard-metric--tip">
+          <div className="dashboard-metric__head">
+            <span className="dashboard-metric__icon">
+              <DashboardIcon name="coins" />
+            </span>
+            <small>{t('dashboard.totalTips')}</small>
+          </div>
+          <strong>{formatVnd(tips)}</strong>
+          <span>
+            {tips > 0 ? t('dashboard.tipShare', { percent: tipShare }) : t('dashboard.noTips')}
+          </span>
+        </article>
+      </section>
+
+      <section className="dashboard-debt-grid" aria-label={t('dashboard.debtOverview')}>
+        <Link className="dashboard-debt-card is-payable" href="/debts" prefetch>
+          <span className="dashboard-debt-card__icon">
+            <DashboardIcon name="wallet" />
+          </span>
+          <div>
+            <small>{t('dashboard.payableDebt')}</small>
+            <strong>{formatVnd(payableAmount)}</strong>
+            <span>{t('dashboard.payableDebtCount', { count: payableDebts.length })}</span>
+          </div>
+        </Link>
+        <Link className="dashboard-debt-card is-lent" href="/debts" prefetch>
+          <span className="dashboard-debt-card__icon">
+            <DashboardIcon name="hand-coins" />
+          </span>
+          <div>
+            <small>{t('dashboard.lentOut')}</small>
+            <strong>{formatVnd(lentAmount)}</strong>
+            <span>{t('dashboard.lentOutCount', { count: lentDebts.length })}</span>
+          </div>
+        </Link>
+        <Link className="dashboard-debt-card is-due" href="/debts" prefetch>
+          <span className="dashboard-debt-card__icon">
+            <DashboardIcon name="calendar" />
+          </span>
+          <div>
+            <small>{t('dashboard.dueThisMonth')}</small>
+            <strong>{formatVnd(dueThisMonthAmount)}</strong>
+            <span>
+              {t('dashboard.dueThisMonthCount', {
+                count: debtsDueThisMonth.length,
+                month: selectedMonthLabel,
+              })}
+            </span>
+          </div>
+          {overduePayableCount > 0 ? (
+            <em>{t('dashboard.overdueCount', { count: overduePayableCount })}</em>
+          ) : null}
         </Link>
       </section>
 
-      <section
-        className={hasMonthTransactions ? 'section-grid' : 'section-grid dashboard-empty-grid'}
-      >
-        <article
-          className={hasMonthTransactions ? 'table-card' : 'empty-card dashboard-empty-card'}
-        >
-          {hasMonthTransactions ? (
-            <>
-              <div className="card-header">
-                <h2>{t('dashboard.recentTransactions')}</h2>
-                <Link className="muted" href={`/transactions?month=${month}`} prefetch>
-                  {t('dashboard.viewAll')}
+      <section className="dashboard-insight-grid">
+        <article className="card dashboard-cashflow-card">
+          <div className="dashboard-section-heading">
+            <span className="dashboard-section-heading__icon">
+              <DashboardIcon name="scale" />
+            </span>
+            <div>
+              <h2>{t('dashboard.cashflowTitle')}</h2>
+              <p>{t('dashboard.cashflowDescription', { month: selectedMonthLabel })}</p>
+            </div>
+          </div>
+          <div className="dashboard-cashflow-status">
+            <div>
+              <span>{t('dashboard.retentionRate')}</span>
+              <strong className={retentionRate >= 0 ? 'amount-income' : 'amount-expense'}>
+                {retentionRate}%
+              </strong>
+            </div>
+            <p>
+              {transactionCount === 0
+                ? t('dashboard.cashflowEmpty')
+                : net >= 0
+                  ? t('dashboard.cashflowPositive')
+                  : t('dashboard.cashflowNegative')}
+            </p>
+          </div>
+          <div className="dashboard-cashflow-bars">
+            <div>
+              <span>
+                {t('dashboard.totalIncome')} <b>{formatVnd(income)}</b>
+              </span>
+              <i className="is-income">
+                <span style={{ width: `${(income / cashflowMax) * 100}%` }} />
+              </i>
+            </div>
+            <div>
+              <span>
+                {t('dashboard.totalExpense')} <b>{formatVnd(expense)}</b>
+              </span>
+              <i className="is-expense">
+                <span style={{ width: `${(expense / cashflowMax) * 100}%` }} />
+              </i>
+            </div>
+          </div>
+        </article>
+
+        <article className="card dashboard-upcoming-card">
+          <div className="dashboard-section-heading dashboard-section-heading--with-link">
+            <span className="dashboard-section-heading__icon is-orange">
+              <DashboardIcon name="calendar" />
+            </span>
+            <div>
+              <h2>{t('dashboard.upcomingDebts')}</h2>
+              <p>{t('dashboard.upcomingDebtsDescription')}</p>
+            </div>
+            <Link href="/debts" prefetch>
+              {t('dashboard.viewDebts')}
+            </Link>
+          </div>
+          {upcomingDebts.length ? (
+            <div className="dashboard-debt-reminders">
+              {upcomingDebts.map((debt) => (
+                <Link className="dashboard-debt-reminder" href="/debts" key={debt.id} prefetch>
+                  <span
+                    className={
+                      debt.direction === 'I_OWE'
+                        ? 'dashboard-debt-reminder__icon is-payable'
+                        : 'dashboard-debt-reminder__icon is-lent'
+                    }
+                  >
+                    <DashboardIcon name={debt.direction === 'I_OWE' ? 'wallet' : 'hand-coins'} />
+                  </span>
+                  <span className="dashboard-debt-reminder__main">
+                    <strong>{debt.counterparty}</strong>
+                    <small>
+                      {debt.direction === 'I_OWE' ? t('debt.toPay') : t('debt.toCollect')}
+                    </small>
+                  </span>
+                  <span className="dashboard-debt-reminder__meta">
+                    <strong>{formatVnd(debt.remaining)}</strong>
+                    <small className={debt.isOverdue ? 'is-overdue' : ''}>
+                      {debt.dueOn
+                        ? debt.isOverdue
+                          ? t('dashboard.overdueDate', {
+                              date: formatDebtDate(debt.dueOn, locale),
+                            })
+                          : t('dashboard.dueDate', {
+                              date: formatDebtDate(debt.dueOn, locale),
+                            })
+                        : t('dashboard.noDueDate')}
+                    </small>
+                  </span>
                 </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="dashboard-compact-empty">
+              <span>
+                <DashboardIcon name="sparkles" />
+              </span>
+              <div>
+                <strong>{t('dashboard.noActiveDebts')}</strong>
+                <p>{t('dashboard.noActiveDebtsDescription')}</p>
               </div>
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>{t('dashboard.content')}</th>
-                      <th>{t('common.method')}</th>
-                      <th>{t('common.amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTransactions.map((transaction) => (
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="section-grid dashboard-ledger-grid">
+        <article className="table-card">
+          <div className="card-header">
+            <h2>{t('dashboard.recentTransactions')}</h2>
+            <Link className="muted" href={`/transactions?month=${month}`} prefetch>
+              {t('dashboard.viewAll')}
+            </Link>
+          </div>
+          {recentTransactions.length ? (
+            <div className="table-wrap">
+              <table className="data-table dashboard-transactions-table">
+                <thead>
+                  <tr>
+                    <th>{t('dashboard.content')}</th>
+                    <th>{t('common.method')}</th>
+                    <th>{t('common.amount')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTransactions.map((transaction) => {
+                    const tipAmount = toNumber(transaction.tipAmount);
+
+                    return (
                       <tr key={transaction.id}>
                         <td>
-                          <span className="cell-title">
-                            {transaction.category?.name ?? t('common.uncategorized')}
-                          </span>
-                          <span className="cell-note">
-                            {transaction.note || t('common.noNote')}
-                          </span>
+                          <div className="dashboard-transaction-cell">
+                            <span
+                              className={
+                                transaction.type === 'INCOME'
+                                  ? 'dashboard-transaction-icon is-income'
+                                  : 'dashboard-transaction-icon is-expense'
+                              }
+                            >
+                              <DashboardIcon
+                                name={transaction.type === 'INCOME' ? 'arrow-up' : 'arrow-down'}
+                              />
+                            </span>
+                            <span>
+                              <b>{transaction.category?.name ?? t('common.uncategorized')}</b>
+                              <small>
+                                {transaction.note ||
+                                  new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    timeZone: 'Asia/Ho_Chi_Minh',
+                                  }).format(transaction.occurredOn)}
+                              </small>
+                              {tipAmount > 0 ? (
+                                <em>
+                                  {t('dashboard.transactionTip', { amount: formatVnd(tipAmount) })}
+                                </em>
+                              ) : null}
+                            </span>
+                          </div>
                         </td>
                         <td>{transaction.paymentMethod?.name ?? '—'}</td>
                         <td
@@ -189,60 +467,72 @@ export default async function DashboardPage({
                           {formatVnd(transaction.amount)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <div>
-              <span className="dashboard-empty-card__icon" aria-hidden="true">
-                ◌
+            <div className="dashboard-compact-empty dashboard-compact-empty--ledger">
+              <span>
+                <DashboardIcon name="receipt" />
               </span>
-              <p className="dashboard-empty-card__eyebrow">{t('dashboard.emptyMonthEyebrow')}</p>
-              <strong>{t('dashboard.emptyMonthTitle', { month: selectedMonthLabel })}</strong>
-              <span>{t('dashboard.emptyMonthDescription')}</span>
-              <div className="dashboard-empty-card__actions">
-                <Link className="button" href={recordTransactionHref} prefetch>
+              <div>
+                <strong>{t('dashboard.emptyMonthTitle', { month: selectedMonthLabel })}</strong>
+                <p>{t('dashboard.emptyMonthDescription')}</p>
+                <Link className="button-ghost" href={recordTransactionHref} prefetch>
                   {t('dashboard.emptyMonthAction')}
                 </Link>
-                {month !== currentMonth ? (
-                  <Link className="button-ghost" href="/dashboard" prefetch>
-                    {t('dashboard.backToCurrentMonth')}
-                  </Link>
-                ) : null}
               </div>
             </div>
           )}
         </article>
 
-        {hasMonthTransactions ? (
-          <article className="card">
-            <div className="card-header">
-              <h2>{t('dashboard.expensesByCategory')}</h2>
-            </div>
-            <div className="list-stack">
-              {topCategories.length ? (
-                topCategories.map(([name, amount]) => (
-                  <div className="list-row" key={name}>
+        <article className="card dashboard-category-card">
+          <div className="card-header">
+            <h2>{t('dashboard.expensesByCategory')}</h2>
+          </div>
+          {topCategories.length ? (
+            <div className="dashboard-category-list">
+              {topCategories.map(([name, amount], index) => {
+                const percent = percentage(amount, expense);
+
+                return (
+                  <div className="dashboard-category-item" key={name}>
                     <div>
+                      <span className={`dashboard-category-dot color-${(index % 5) + 1}`} />
                       <strong>{name}</strong>
-                      <span>
-                        {t('dashboard.percentOfExpenses', {
-                          percent: expense ? Math.round((amount / expense) * 100) : 0,
-                        })}
-                      </span>
+                      <b className="amount-expense">{formatVnd(amount)}</b>
                     </div>
-                    <b className="amount-expense">{formatVnd(amount)}</b>
+                    <span>
+                      <i>
+                        <span style={{ width: `${percent}%` }} />
+                      </i>
+                      <small>{t('dashboard.percentOfExpenses', { percent })}</small>
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p className="muted">{t('dashboard.noExpenses')}</p>
-              )}
+                );
+              })}
             </div>
-          </article>
-        ) : null}
+          ) : (
+            <div className="dashboard-compact-empty">
+              <span>
+                <DashboardIcon name="coins" />
+              </span>
+              <div>
+                <strong>{t('dashboard.noExpenses')}</strong>
+                <p>{t('dashboard.noExpensesDescription')}</p>
+              </div>
+            </div>
+          )}
+        </article>
       </section>
-    </>
+
+      {month !== currentMonth ? (
+        <Link className="dashboard-current-month-link" href="/dashboard" prefetch>
+          {t('dashboard.backToCurrentMonth')}
+        </Link>
+      ) : null}
+    </div>
   );
 }

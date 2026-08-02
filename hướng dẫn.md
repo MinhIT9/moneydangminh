@@ -35,7 +35,7 @@ npm run db:deploy
 npm run dev
 ```
 
-Mở ứng dụng tại [http://localhost:3000](http://localhost:3000). Nếu dùng ngrok, hãy dùng URL do ngrok tạo ở phiên chạy hiện tại; không ghi cứng URL đó vào tài liệu hay cấu hình public.
+Mở ứng dụng tại [https://unpatiently-unintruded-rylie.ngrok-free.dev/](http://localhost:3000). Nếu dùng ngrok, hãy dùng URL do ngrok tạo ở phiên chạy hiện tại; không ghi cứng URL đó vào tài liệu hay cấu hình public.
 
 `npm install` tự chạy `postinstall`, vì vậy Prisma Client sẽ được generate sẵn. `db:deploy` chỉ áp dụng migration đã nằm trong thư mục `prisma/migrations`.
 
@@ -150,3 +150,8 @@ Trước production     npm run check → npm run build
 Deploy production    npm run deploy → npm run start
 Prisma có vấn đề     dừng dev → npm run dev:fresh
 ```
+
+### Dừng terminal đang chạy npm run dev bằng Ctrl + C
+
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue |
+Select-Object OwningProcess
