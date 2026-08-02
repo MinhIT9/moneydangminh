@@ -35,7 +35,15 @@ npm run db:deploy
 npm run dev
 ```
 
-Mở ứng dụng tại [https://unpatiently-unintruded-rylie.ngrok-free.dev/](http://localhost:3000). Nếu dùng ngrok, hãy dùng URL do ngrok tạo ở phiên chạy hiện tại; không ghi cứng URL đó vào tài liệu hay cấu hình public.
+Mở ứng dụng cục bộ tại [http://localhost:3000](http://localhost:3000).
+
+Nếu truy cập `npm run dev` qua ngrok, thêm hostname đáng tin cậy vào `.env` rồi khởi động lại dev server:
+
+```dotenv
+ALLOWED_DEV_ORIGINS=ten-mien-cua-ban.ngrok-free.app
+```
+
+Chỉ nhập hostname, không nhập đường dẫn. Có thể khai báo nhiều hostname và phân tách bằng dấu phẩy. Không dùng wildcard rộng vì dev server chứa tài nguyên nội bộ chỉ dành cho phát triển.
 
 `npm install` tự chạy `postinstall`, vì vậy Prisma Client sẽ được generate sẵn. `db:deploy` chỉ áp dụng migration đã nằm trong thư mục `prisma/migrations`.
 
@@ -46,6 +54,8 @@ npm run dev
 ```
 
 Giữ terminal này mở. Sau khi sửa file và nhấn `Ctrl + S`, Next.js tự cập nhật trang qua Fast Refresh. Không cần chạy `build` hoặc `prod` sau mỗi lần sửa code.
+
+Nếu vừa thay đổi `ALLOWED_DEV_ORIGINS`, bắt buộc dừng dev server bằng `Ctrl + C` và chạy lại `npm run dev`.
 
 ## 3. Khi Prisma Client lỗi hoặc vừa tải source
 

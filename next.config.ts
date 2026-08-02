@@ -1,5 +1,22 @@
 import type { NextConfig } from 'next';
 
+function normalizeDevOrigin(value: string) {
+  const origin = value.trim();
+
+  if (!origin) return null;
+
+  try {
+    return new URL(origin.includes('://') ? origin : `https://${origin}`).hostname;
+  } catch {
+    return null;
+  }
+}
+
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? '')
+  .split(',')
+  .map(normalizeDevOrigin)
+  .filter((origin): origin is string => Boolean(origin));
+
 const securityHeaders = [
   {
     key: 'X-Content-Type-Options',
@@ -47,6 +64,9 @@ const noIndexRoutes = [
 ];
 
 const nextConfig: NextConfig = {
+  // Allow trusted tunnels to load the React client runtime. Without this,
+  // HTML may render through ngrok while controls fail to hydrate in `next dev`.
+  allowedDevOrigins,
   poweredByHeader: false,
   images: {
     // Landing illustrations are large source PNGs. Next serves modern, responsive variants
