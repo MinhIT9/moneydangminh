@@ -1,6 +1,6 @@
 # Đặc tả website Heo Xinh
 
-> Phiên bản sản phẩm: **V8.2.0**
+> Phiên bản sản phẩm: **V8.2.1**
 > Trạng thái tài liệu: **Đặc tả theo hệ thống đang hoạt động (as-built)**  
 > Ngày cập nhật: **03/08/2026**
 
@@ -317,7 +317,7 @@ Khi xóa người dùng, dữ liệu phiên, danh mục, phương thức, giao d
 - Luật thắng: chuỗi từ 5 quân trở lên theo ngang, dọc hoặc chéo; chuỗi bị đối phương chặn cả hai đầu không thắng; mép bàn không được tính là quân chặn.
 - Tim tự hồi theo thời gian, tối đa 5; không chạy bộ đếm riêng trong database.
 - Điểm Elo và hạng được đặt tên/lưu riêng cho Caro; game bổ sung trong tương lai phải có tiến trình xếp hạng riêng.
-- Khi trận kết thúc, người chơi có thể tìm trận xếp hạng mới, cùng sẵn sàng chơi hiệp tiếp theo trong phòng hoặc thoát về sảnh.
+- Khi trận kết thúc, modal kết quả hiển thị thông điệp thắng/hòa/thua; chiến thắng có hiệu ứng chúc mừng. Người chơi có thể xem lại bàn cờ, tìm trận mới, cùng sẵn sàng chơi hiệp tiếp theo hoặc thoát về sảnh.
 - Bạn bè, lời mời, chặn người chơi, chat trực tiếp/phòng/trận và thông báo được lưu MariaDB; tin nhắn được giới hạn độ dài và tốc độ gửi.
 - Đầu hàng và đề nghị hòa có xác nhận của đối thủ đều được server xử lý nguyên tử.
 - API `/api/games/*` yêu cầu phiên đăng nhập, phản hồi `no-store`; POST kiểm tra cùng origin. Server Actions trả kết quả có mã lỗi ổn định.

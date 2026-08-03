@@ -15,7 +15,7 @@ Backend game hiện hỗ trợ:
 - Đầu hàng và đề nghị hòa có xác nhận từ đối thủ.
 - Hàng chờ đấu hạng theo cấp Caro hiện tại và hai cấp liền kề, tự loại người chơi mất kết nối.
 - Trận xếp hạng có 15 giây mỗi lượt và dùng thời gian server để đồng bộ hai phía.
-- Sau trận có thể tìm đối thủ mới, sẵn sàng hiệp tiếp theo trong phòng hoặc trở về sảnh.
+- Sau trận hiển thị modal kết quả; chiến thắng có hiệu ứng chúc mừng, sau đó có thể tìm đối thủ mới, sẵn sàng hiệp tiếp theo hoặc trở về sảnh.
 - Tim hồi theo thời gian; điểm Elo Caro, thống kê và bảng xếp hạng lưu MariaDB độc lập với game khác.
 - Kết bạn, chấp nhận/từ chối, chặn và tin nhắn trực tiếp có giới hạn tốc độ.
 - API polling riêng tư tại `/api/games/*`, không cache và không index.

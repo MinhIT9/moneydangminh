@@ -55,9 +55,27 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
   const [error, setError] = useState('');
   const [chatInput, setChatInput] = useState('');
   const active = initialState.status === 'ACTIVE';
+  const [dismissedResultId, setDismissedResultId] = useState<string | null>(null);
+  const resultModalOpen = !active && dismissedResultId !== initialState.id;
   const myMark: CaroMark = initialState.playerX.id === initialState.currentUserId ? 'X' : 'O';
   const myTurn = active && initialState.currentTurn === myMark;
   const won = initialState.status === `${myMark}_WON`;
+  const myRatingChange =
+    (myMark === 'X' ? initialState.playerXChange : initialState.playerOChange) ?? 0;
+
+  useEffect(() => {
+    if (!resultModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDismissedResultId(initialState.id);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [initialState.id, resultModalOpen]);
 
   useEffect(() => {
     const serverOffset = new Date(initialState.serverNow).getTime() - Date.now();
@@ -166,8 +184,100 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
         ? 'Bạn đã chiến thắng!'
         : 'Bạn đã thua trận';
 
+  function continueAfterResult() {
+    setDismissedResultId(initialState.id);
+    window.setTimeout(() => {
+      document.getElementById('caro-next-actions')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 50);
+  }
+
   return (
     <>
+      {resultModalOpen && !active && (
+        <div
+          className="caro-result-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDismissedResultId(initialState.id);
+          }}
+        >
+          <section
+            className={`caro-result-dialog${won ? ' is-win' : initialState.status === 'DRAW' ? ' is-draw' : ' is-loss'}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="caro-result-title"
+          >
+            {won && (
+              <div className="caro-result-confetti" aria-hidden="true">
+                {Array.from({ length: 14 }, (_, index) => (
+                  <i key={index} />
+                ))}
+              </div>
+            )}
+            <button
+              className="caro-result-dialog__close"
+              type="button"
+              aria-label="Đóng thông báo kết quả"
+              onClick={() => setDismissedResultId(initialState.id)}
+            >
+              ×
+            </button>
+            <span className="caro-result-dialog__mascot" aria-hidden="true">
+              {initialState.status === 'DRAW' ? '🤝' : won ? '🐷🏆' : '🐷💪'}
+            </span>
+            <small>
+              {won
+                ? 'TUYỆT VỜI!'
+                : initialState.status === 'DRAW'
+                  ? 'BẤT PHÂN THẮNG BẠI'
+                  : 'CỐ LÊN NHÉ!'}
+            </small>
+            <h1 id="caro-result-title">
+              {won
+                ? 'Chúc mừng bạn chiến thắng!'
+                : initialState.status === 'DRAW'
+                  ? 'Hai kỳ thủ đã hòa nhau'
+                  : 'Bạn đã thi đấu rất tốt'}
+            </h1>
+            <p>
+              {won
+                ? 'Một ván đấu xuất sắc! Hãy giữ vững phong độ và tiếp tục chuỗi chiến thắng.'
+                : initialState.status === 'DRAW'
+                  ? 'Ván đấu cân tài cân sức. Hãy thử thêm một hiệp để tìm ra người chiến thắng.'
+                  : 'Mỗi ván cờ đều giúp bạn tiến bộ. Sẵn sàng trở lại mạnh mẽ hơn nhé!'}
+            </p>
+            {initialState.mode === 'RANKED' && (
+              <strong className="caro-result-dialog__rating">
+                Điểm Caro {myRatingChange >= 0 ? '+' : ''}
+                {myRatingChange}
+              </strong>
+            )}
+            <div className="caro-result-dialog__actions">
+              <button
+                className="game-primary-button"
+                type="button"
+                autoFocus
+                onClick={continueAfterResult}
+              >
+                {initialState.roomCode ? '🎮 Chuẩn bị hiệp mới' : '🎮 Chơi trận tiếp theo'}
+              </button>
+              <button
+                className="game-secondary-button"
+                type="button"
+                onClick={() => setDismissedResultId(initialState.id)}
+              >
+                👀 Xem lại bàn cờ
+              </button>
+              <Link className="caro-result-dialog__lobby" href="/games/caro">
+                Thoát về sảnh
+              </Link>
+            </div>
+          </section>
+        </div>
+      )}
       <div className="match-status game-panel" aria-live="polite">
         <span>✦ {initialState.mode === 'RANKED' ? 'Đấu xếp hạng' : 'Giao hữu'}</span>
         <strong>{statusText}</strong>
@@ -177,7 +287,10 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
         </span>
       </div>
       {!active && (
-        <section className={`match-result-panel game-panel${won ? ' is-win' : ''}`}>
+        <section
+          id="caro-next-actions"
+          className={`match-result-panel game-panel${won ? ' is-win' : ''}`}
+        >
           <span className="match-result-panel__icon" aria-hidden="true">
             {initialState.status === 'DRAW' ? '🤝' : won ? '🏆' : '🌱'}
           </span>
