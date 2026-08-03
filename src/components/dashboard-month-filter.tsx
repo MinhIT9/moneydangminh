@@ -8,9 +8,13 @@ import { useLocale } from '@/i18n/locale-provider';
 export function DashboardMonthFilter({
   value,
   activeMonths,
+  route = '/dashboard',
+  id = 'dashboard-month',
 }: {
   value: string;
   activeMonths?: string[];
+  route?: string;
+  id?: string;
 }) {
   const { t } = useLocale();
   const router = useRouter();
@@ -18,18 +22,18 @@ export function DashboardMonthFilter({
 
   function updateMonth(month: string) {
     startTransition(() => {
-      router.replace(`/dashboard?month=${encodeURIComponent(month)}`, { scroll: false });
+      router.replace(`${route}?month=${encodeURIComponent(month)}`, { scroll: false });
     });
   }
 
   return (
     <div aria-busy={isPending}>
-      <label className="sr-only" htmlFor="dashboard-month">
+      <label className="sr-only" htmlFor={id}>
         {t('month.select')}
       </label>
       <MonthSelect
         key={value}
-        id="dashboard-month"
+        id={id}
         value={value}
         activeMonths={activeMonths}
         disabled={isPending}

@@ -374,6 +374,65 @@ a {
   font-weight: 700;
 }
 
+.help-tip {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+}
+
+.help-tip summary {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border: 1px solid #d9d5f5;
+  border-radius: 50%;
+  background: #f8f7ff;
+  color: var(--purple);
+  cursor: help;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  list-style: none;
+}
+
+.help-tip summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-tip summary:focus-visible {
+  outline: 3px solid rgba(103, 92, 232, 0.2);
+  outline-offset: 2px;
+}
+
+.help-tip__bubble {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 8px);
+  left: 50%;
+  width: min(280px, calc(100vw - 42px));
+  padding: 11px 12px;
+  border: 1px solid #dedaf7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 15px 38px rgba(41, 36, 91, 0.16);
+  color: #5f6b83;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  transform: translateX(-50%);
+}
+
+.help-tip:not([open]) .help-tip__bubble {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .help-tip:not([open]):hover .help-tip__bubble {
+    display: block;
+  }
+}
+
 .loading-page {
   display: grid;
   gap: 13px;
@@ -2829,6 +2888,138 @@ summary:focus-visible,
   gap: 14px;
 }
 
+.dashboard-income-plan-card {
+  position: relative;
+  display: grid;
+  min-height: 245px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.95fr);
+  overflow: hidden;
+  border: 1px solid rgba(122, 99, 226, 0.2);
+  border-radius: 23px;
+  background: linear-gradient(120deg, #f5f2ff, #fff8f5);
+  box-shadow: 0 17px 40px rgba(54, 43, 116, 0.07);
+}
+
+.dashboard-income-plan-card__copy {
+  position: relative;
+  z-index: 2;
+  padding: 24px;
+}
+
+.dashboard-income-plan-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--purple);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.dashboard-income-plan-card__eyebrow .dashboard-icon {
+  width: 16px;
+}
+
+.dashboard-income-plan-card__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.dashboard-income-plan-card h2 {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: -0.8px;
+}
+
+.dashboard-income-plan-card__copy > p {
+  max-width: 610px;
+  margin: 5px 0 17px;
+  color: #6d7890;
+  font-size: 12px;
+}
+
+.dashboard-income-plan-card__numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-income-plan-card__numbers > div {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.dashboard-income-plan-card__numbers span,
+.dashboard-income-plan-card__numbers strong {
+  display: block;
+}
+
+.dashboard-income-plan-card__numbers span {
+  color: #7a859b;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dashboard-income-plan-card__numbers strong {
+  margin-top: 2px;
+  color: var(--purple);
+  font-size: 19px;
+}
+
+.dashboard-income-plan-card__progress {
+  height: 8px;
+  margin-top: 13px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(107, 92, 218, 0.12);
+}
+
+.dashboard-income-plan-card__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6858e5, #a568eb, #f09b78);
+}
+
+.dashboard-income-plan-card__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 13px;
+  margin-top: 7px;
+}
+
+.dashboard-income-plan-card__footer small {
+  color: #7d88a0;
+  font-size: 9px;
+}
+
+.dashboard-income-plan-card__footer a {
+  color: var(--purple);
+  font-size: 11px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.dashboard-income-plan-card__art {
+  position: relative;
+  min-height: 245px;
+}
+
+.dashboard-income-plan-card__art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 64% center;
+}
+
 .dashboard-debt-card {
   position: relative;
   display: grid;
@@ -3391,6 +3582,10 @@ summary:focus-visible,
   .dashboard-insight-grid {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-income-plan-card {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+  }
 }
 
 @media (max-width: 760px) {
@@ -3422,6 +3617,15 @@ summary:focus-visible,
 
   .dashboard-ledger-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-income-plan-card {
+    min-height: 440px;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-income-plan-card__art {
+    min-height: 200px;
   }
 }
 
@@ -3522,6 +3726,19 @@ summary:focus-visible,
 
   .dashboard-category-list {
     padding: 17px 0 2px;
+  }
+
+  .dashboard-income-plan-card__copy {
+    padding: 18px;
+  }
+
+  .dashboard-income-plan-card__numbers {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-income-plan-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

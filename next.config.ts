@@ -53,6 +53,7 @@ const noIndexHeaders = [
 
 const noIndexRoutes = [
   '/dashboard/:path*',
+  '/income-plan/:path*',
   '/transactions/:path*',
   '/categories/:path*',
   '/debts/:path*',
@@ -64,6 +65,9 @@ const noIndexRoutes = [
 ];
 
 const nextConfig: NextConfig = {
+  // CI or diagnostic builds can use an isolated output directory when a Windows
+  // dev process still has files open in the regular `.next` directory.
+  distDir: process.env.NEXT_DIST_DIR?.trim() || '.next',
   // Allow trusted tunnels to load the React client runtime. Without this,
   // HTML may render through ngrok while controls fail to hydrate in `next dev`.
   allowedDevOrigins,

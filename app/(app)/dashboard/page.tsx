@@ -1,11 +1,18 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { DashboardMonthFilter } from '@/components/dashboard-month-filter';
 import { DashboardIcon, DashboardIllustration } from '@/components/dashboard-visuals';
+import { HelpTip } from '@/components/help-tip';
 import { getTranslations } from '@/i18n/server';
 import { requireUser } from '@/lib/auth';
 import { dateInputValue, monthInputValue } from '@/lib/date';
 import { db } from '@/lib/db';
 import { debtSummary, getMonthRange, toNumber } from '@/lib/finance';
+import {
+  calculateIncomePlan,
+  defaultIncomePlanSettings,
+  type IncomeForecastMethod,
+} from '@/lib/income-plan-calculator';
 import { formatVnd } from '@/lib/money';
 
 function formatSelectedMonth(value: string, locale: 'vi' | 'en') {
@@ -41,6 +48,9 @@ export default async function DashboardPage({
   const { start, end, value: month } = getMonthRange(params.month ?? monthInputValue());
   const currentMonth = monthInputValue();
   const todayKey = dateInputValue(new Date());
+  const currentDay = Number(todayKey.slice(8, 10));
+  const [selectedYear, selectedMonthNumber] = month.split('-').map(Number);
+  const historyStart = new Date(Date.UTC(selectedYear, selectedMonthNumber - 4, 1));
 
   const [
     transactionTotals,
@@ -49,6 +59,8 @@ export default async function DashboardPage({
     debts,
     categories,
     transactionDates,
+    savedIncomePlan,
+    historicalExpenses,
   ] = await Promise.all([
     db.transaction.groupBy({
       by: ['type'],
@@ -100,6 +112,17 @@ export default async function DashboardPage({
       select: { occurredOn: true },
       distinct: ['occurredOn'],
     }),
+    db.incomePlan.findUnique({
+      where: { userId_month: { userId: user.id, month: start } },
+    }),
+    db.transaction.aggregate({
+      where: {
+        userId: user.id,
+        type: 'EXPENSE',
+        occurredOn: { gte: historyStart, lt: start },
+      },
+      _sum: { amount: true },
+    }),
   ]);
 
   const incomeTotal = transactionTotals.find((total) => total.type === 'INCOME');
@@ -146,6 +169,28 @@ export default async function DashboardPage({
   const dueThisMonthAmount = debtsDueThisMonth.reduce((total, debt) => total + debt.remaining, 0);
   const overduePayableCount = payableDebts.filter((debt) => debt.isOverdue).length;
   const upcomingDebts = debtItems.slice(0, 5);
+  const incomePlanSettings = savedIncomePlan
+    ? {
+        targetSurplus: toNumber(savedIncomePlan.targetSurplus),
+        workdaysPerWeek: savedIncomePlan.workdaysPerWeek,
+        extraExpectedExpense: toNumber(savedIncomePlan.extraExpectedExpense),
+        includeDueDebts: savedIncomePlan.includeDueDebts,
+        forecastMethod: savedIncomePlan.forecastMethod as IncomeForecastMethod,
+        manualMonthlyExpense: savedIncomePlan.manualMonthlyExpense
+          ? toNumber(savedIncomePlan.manualMonthlyExpense)
+          : null,
+      }
+    : defaultIncomePlanSettings;
+  const incomePlan = calculateIncomePlan({
+    month,
+    currentMonth,
+    currentDay,
+    actualIncome: income,
+    actualExpense: expense,
+    averageMonthlyExpense: Math.round(toNumber(historicalExpenses._sum.amount ?? 0) / 3),
+    dueDebtRemaining: dueThisMonthAmount,
+    settings: incomePlanSettings,
+  });
 
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
   const categoryTotals = new Map<string, number>();
@@ -291,6 +336,50 @@ export default async function DashboardPage({
             <em>{t('dashboard.overdueCount', { count: overduePayableCount })}</em>
           ) : null}
         </Link>
+      </section>
+
+      <section className="dashboard-income-plan-card">
+        <div className="dashboard-income-plan-card__copy">
+          <span className="dashboard-income-plan-card__eyebrow">
+            <DashboardIcon name="target" />
+            {t('incomePlan.eyebrow')}
+          </span>
+          <div className="dashboard-income-plan-card__title">
+            <h2>{t('incomePlan.title')}</h2>
+            <HelpTip label={t('incomePlan.explainMonthly')}>
+              {t('incomePlan.explainMonthly')}
+            </HelpTip>
+          </div>
+          <p>{t('dashboard.incomePlanDescription')}</p>
+          <div className="dashboard-income-plan-card__numbers">
+            <div>
+              <span>{t('incomePlan.perWorkday')}</span>
+              <strong>{formatVnd(incomePlan.dailyTarget)}</strong>
+            </div>
+            <div>
+              <span>{t('incomePlan.stillNeeded')}</span>
+              <strong>{formatVnd(incomePlan.incomeStillNeeded)}</strong>
+            </div>
+          </div>
+          <div className="dashboard-income-plan-card__progress">
+            <span style={{ width: `${incomePlan.incomeProgress}%` }} />
+          </div>
+          <div className="dashboard-income-plan-card__footer">
+            <small>{t('incomePlan.progressPercent', { percent: incomePlan.incomeProgress })}</small>
+            <Link href={`/income-plan?month=${month}`} prefetch>
+              {t('dashboard.openIncomePlan')} →
+            </Link>
+          </div>
+        </div>
+        <div className="dashboard-income-plan-card__art">
+          <Image
+            src="/images/heo-xinh-income-plan.png"
+            alt=""
+            width={1694}
+            height={931}
+            sizes="(max-width: 760px) 100vw, 35vw"
+          />
+        </div>
       </section>
 
       <section className="dashboard-insight-grid">

@@ -6,7 +6,10 @@ type DashboardIconName =
   | 'hand-coins'
   | 'receipt'
   | 'scale'
+  | 'shield'
   | 'sparkles'
+  | 'target'
+  | 'trend'
   | 'wallet';
 
 export function DashboardIcon({ name }: { name: DashboardIconName }) {
@@ -55,10 +58,30 @@ export function DashboardIcon({ name }: { name: DashboardIconName }) {
         <path d="M12 3v18M5 6h14M7 6l-4 7h8ZM17 6l-4 7h8ZM8 21h8" />
       </>
     ),
+    shield: (
+      <>
+        <path d="M12 3 20 6v5c0 5.2-3.4 8.7-8 10-4.6-1.3-8-4.8-8-10V6Z" />
+        <path d="m9 12 2 2 4-5" />
+      </>
+    ),
     sparkles: (
       <>
         <path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2Z" />
         <path d="m19 14 .7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7ZM5 14l.5 1.5L7 16l-1.5.5L5 18l-.5-1.5L3 16l1.5-.5Z" />
+      </>
+    ),
+    target: (
+      <>
+        <circle cx="11" cy="13" r="8" />
+        <circle cx="11" cy="13" r="4" />
+        <path d="m14 10 7-7M16 3h5v5" />
+      </>
+    ),
+    trend: (
+      <>
+        <path d="M4 19V5M4 19h16" />
+        <path d="m7 15 4-4 3 2 6-7" />
+        <path d="M16 6h4v4" />
       </>
     ),
     wallet: (

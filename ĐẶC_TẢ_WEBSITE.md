@@ -1,6 +1,6 @@
 # Đặc tả website Heo Xinh
 
-> Phiên bản sản phẩm: **V8.2.1**
+> Phiên bản sản phẩm: **V8.3.0**
 > Trạng thái tài liệu: **Đặc tả theo hệ thống đang hoạt động (as-built)**  
 > Ngày cập nhật: **03/08/2026**
 
@@ -24,6 +24,7 @@ Sản phẩm hướng đến:
 
 - Ghi một khoản thu hoặc chi nhanh, dễ hiểu trên mọi thiết bị.
 - Tổng hợp dòng tiền theo tháng.
+- Ước tính mục tiêu thu nhập theo ngày, tuần và tháng để chi xong vẫn dương.
 - Cho phép lưu cách cộng tiền thực tế, ví dụ `10000 + 20000 + 11000`.
 - Theo dõi tiền tip tách biệt nhưng vẫn tính vào tổng giao dịch.
 - Biết giao dịch đã dùng tiền mặt, ngân hàng hay ví điện tử mà không quản lý số dư ví.
@@ -97,6 +98,7 @@ Kiến trúc sử dụng:
 | `/login`                      | Công khai     | Đăng nhập tài khoản.                                                | Noindex |
 | `/register`                   | Công khai     | Đăng ký tài khoản.                                                  | Noindex |
 | `/dashboard`                  | Đã đăng nhập  | Tổng quan tài chính theo tháng.                                     | Noindex |
+| `/income-plan`                | Đã đăng nhập  | Lập và theo dõi kế hoạch thu nhập theo tháng.                       | Noindex |
 | `/transactions`               | Đã đăng nhập  | Sổ thu chi và quản lý giao dịch.                                    | Noindex |
 | `/categories`                 | Đã đăng nhập  | Quản lý danh mục và phương thức.                                    | Noindex |
 | `/debts`                      | Đã đăng nhập  | Quản lý khoản nợ, thanh toán, tất toán và nhật ký.                  | Noindex |
@@ -173,6 +175,21 @@ Dashboard cho phép chọn tháng và hiển thị:
 - Tối đa năm khoản nợ cần chú ý, ưu tiên hạn gần nhất; khoản không có hạn nằm sau.
 
 Từ dashboard, người dùng có thể mở nhanh form ghi giao dịch cho tháng đang xem hoặc chuyển tới trang quản lý nợ.
+
+#### 6.4.1. Kế hoạch thu nhập
+
+- Dashboard hiển thị nhanh số cần kiếm mỗi ngày, số còn thiếu và tiến độ mục tiêu.
+- Trang `/income-plan` cho phép đặt vùng đệm cuối tháng, số ngày kiếm tiền mỗi tuần,
+  khoản chi chắc chắn sắp tới và lựa chọn có tính nợ đến hạn hay không.
+- Dự báo chi hỗ trợ ba cách: theo nhịp chi tháng hiện tại, trung bình ba tháng hoàn
+  chỉnh gần nhất hoặc ngân sách do người dùng tự đặt.
+- Tổng thu cần đạt bằng chi đã ghi, phần chi còn dự báo, chi dự kiến thêm, nợ đến
+  hạn được chọn và vùng đệm mong muốn.
+- Tiền tip đã nằm trong tổng thu giao dịch nên không bị cộng hai lần.
+- Hệ thống chỉ lưu giả định theo người dùng và tháng. Mục tiêu ngày, tuần, tháng,
+  tiến độ và số còn thiếu là dữ liệu dẫn xuất, luôn được tính lại.
+- Các khái niệm và công thức có nút `?` truy cập bằng chuột, bàn phím và thao tác
+  chạm; giao diện responsive từ desktop đến điện thoại nhỏ.
 
 ### 6.5. Sổ thu chi
 

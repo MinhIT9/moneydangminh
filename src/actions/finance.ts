@@ -13,7 +13,7 @@ import {
 import { db } from '@/lib/db';
 import { formText, textSchema } from '@/lib/validation';
 
-const appPaths = ['/dashboard', '/transactions', '/categories', '/debts'];
+const appPaths = ['/dashboard', '/income-plan', '/transactions', '/categories', '/debts'];
 const paymentMethodTypes = ['CASH', 'BANK', 'EWALLET', 'CARD', 'OTHER'] as const;
 
 function isPaymentMethodType(value: string): value is (typeof paymentMethodTypes)[number] {

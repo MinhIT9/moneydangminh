@@ -36,6 +36,12 @@ enum TransactionType {
   EXPENSE
 }
 
+enum IncomeForecastMethod {
+  CURRENT_PACE
+  THREE_MONTH_AVERAGE
+  MANUAL
+}
+
 enum DebtDirection {
   I_OWE
   OWED_TO_ME
@@ -148,6 +154,7 @@ model User {
   transactions           Transaction[]
   debts                  Debt[]
   debtPayments           DebtPayment[]
+  incomePlans            IncomePlan[]
   gameProfile            GameProfile?
   hostedCaroRooms        CaroRoom[]         @relation("CaroRoomHost")
   joinedCaroRooms        CaroRoom[]         @relation("CaroRoomGuest")
@@ -304,6 +311,26 @@ model DebtPayment {
   @@index([userId, paidOn])
   @@index([debtId, paidOn])
   @@map("debt_payments")
+}
+
+model IncomePlan {
+  id                       String               @id @default(cuid()) @db.VarChar(30)
+  userId                   String               @map("user_id") @db.VarChar(30)
+  month                    DateTime             @db.Date
+  targetSurplus            Decimal              @default(0) @map("target_surplus") @db.Decimal(15, 0)
+  workdaysPerWeek          Int                  @default(6) @map("workdays_per_week")
+  extraExpectedExpense     Decimal              @default(0) @map("extra_expected_expense") @db.Decimal(15, 0)
+  includeDueDebts          Boolean              @default(true) @map("include_due_debts")
+  forecastMethod           IncomeForecastMethod @default(CURRENT_PACE) @map("forecast_method")
+  manualMonthlyExpense     Decimal?             @map("manual_monthly_expense") @db.Decimal(15, 0)
+  createdAt                DateTime              @default(now()) @map("created_at")
+  updatedAt                DateTime              @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId, month])
+  @@map("income_plans")
 }
 
 model GameProfile {

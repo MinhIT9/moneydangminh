@@ -7,6 +7,11 @@ trị để mở/đóng đăng ký và quản lý tài khoản thường. Khu C�
 game có backend MariaDB, Server Actions và API HTTP. Nước đi, phòng, tim, Elo,
 bạn bè, chat, lời mời và kết quả trận đều được xác thực phía máy chủ.
 
+Khu tài chính có thêm **Kế hoạch thu nhập**: dự báo số tiền cần kiếm theo ngày,
+tuần và tháng từ thu chi thực tế, lịch làm, khoản chi sắp tới, nợ đến hạn và vùng
+đệm mong muốn. Hệ thống chỉ lưu giả định của người dùng; mọi kết quả được tính
+lại từ dữ liệu mới nhất và có nút `?` giải thích tại các khái niệm dễ gây nhầm.
+
 Backend game hiện hỗ trợ:
 
 - Profile game tự tạo theo tài khoản và ID người chơi ổn định.
@@ -100,6 +105,7 @@ Backend game hiện hỗ trợ:
 npm run format:check
 npm run typecheck
 npm run lint
+npm run test:income-plan
 npm run build
 ```
 
