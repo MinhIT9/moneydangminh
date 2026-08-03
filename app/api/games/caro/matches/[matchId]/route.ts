@@ -19,6 +19,7 @@ export async function GET(
   if (!match) return privateJson(null, 404);
   return privateJson({
     id: match.id,
+    serverNow: new Date().toISOString(),
     status: match.status,
     mode: match.mode,
     resultReason: match.resultReason,

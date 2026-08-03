@@ -13,30 +13,52 @@ import {
 export function MatchmakingButton() {
   const router = useRouter();
   const [searching, setSearching] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [allowedRanks, setAllowedRanks] = useState<string[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!searching) return;
 
-    const timer = window.setInterval(async () => {
-      setSeconds((value) => value + 2);
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const poll = async () => {
       const result = await pollRankedMatchAction();
+      if (cancelled) return;
       if (!result.ok) {
+        if (result.code === 'QUEUE_CONFLICT') {
+          timer = window.setTimeout(poll, 800);
+          return;
+        }
         setError(result.error);
         setSearching(false);
       } else if (result.data.status === 'MATCHED') {
+        setSearching(false);
         router.push(`/games/caro/match/${result.data.matchId}`);
       } else if (result.data.status === 'IDLE') {
         setSearching(false);
+      } else {
+        setSeconds(result.data.waitedSeconds);
+        setAllowedRanks(result.data.allowedRanks);
+        timer = window.setTimeout(poll, 1000);
       }
-    }, 2000);
-    return () => window.clearInterval(timer);
+    };
+
+    timer = window.setTimeout(poll, 500);
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, [router, searching]);
 
   async function startSearching() {
+    if (starting || searching) return;
+    setStarting(true);
     setError('');
     const result = await queueRankedMatchAction();
+    setStarting(false);
     if (!result.ok) return setError(result.error);
     if (result.data.status === 'MATCHED') {
       router.push(`/games/caro/match/${result.data.matchId}`);
@@ -44,6 +66,7 @@ export function MatchmakingButton() {
     }
     setSearching(true);
     setSeconds(result.data.waitedSeconds);
+    setAllowedRanks(result.data.allowedRanks);
   }
 
   async function cancelSearching() {
@@ -59,9 +82,7 @@ export function MatchmakingButton() {
         <div>
           <strong>Đang tìm đối thủ phù hợp…</strong>
           <small>
-            {seconds} giây · Phạm vi ±
-            {seconds < 10 ? 100 : seconds < 20 ? 200 : Math.min(600, 200 + (seconds - 20) * 20)}{' '}
-            điểm
+            {seconds} giây · Ghép hạng {allowedRanks.join(', ')}
           </small>
         </div>
         <button type="button" onClick={cancelSearching}>
@@ -76,9 +97,10 @@ export function MatchmakingButton() {
       <button
         className="game-primary-button game-primary-button--wide"
         type="button"
+        disabled={starting}
         onClick={startSearching}
       >
-        🎮 Tìm đối thủ
+        {starting ? 'Đang vào hàng chờ…' : '🎮 Tìm đối thủ'}
       </button>
       {error && <p className="game-action-error">{error}</p>}
     </div>

@@ -56,7 +56,7 @@ export default async function PrivateRoomPage({
           : friend.gameProfile?.presence === 'OFFLINE'
             ? 'Ngoại tuyến'
             : 'Đang online',
-      score: friend.gameProfile?.rating ?? 500,
+      score: friend.gameProfile?.caroRating ?? 500,
     };
   });
 
@@ -121,7 +121,7 @@ export default async function PrivateRoomPage({
                 <RoomPlayer
                   name={room.host.displayName || 'Chủ phòng'}
                   avatar={room.host.gameProfile?.avatar ?? '🐷'}
-                  rating={room.host.gameProfile?.rating ?? 500}
+                  rating={room.host.gameProfile?.caroRating ?? 500}
                   ready={room.hostReady}
                   owner
                 />
@@ -129,7 +129,7 @@ export default async function PrivateRoomPage({
                   <RoomPlayer
                     name={room.guest.displayName || 'Người chơi'}
                     avatar={room.guest.gameProfile?.avatar ?? '👧🏻'}
-                    rating={room.guest.gameProfile?.rating ?? 500}
+                    rating={room.guest.gameProfile?.caroRating ?? 500}
                     ready={room.guestReady}
                   />
                 ) : (

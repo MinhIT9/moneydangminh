@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   offerCaroDrawAction,
   playCaroMoveAction,
+  readyForPrivateRoomRematchAction,
   respondCaroDrawAction,
   sendMatchMessageAction,
   surrenderCaroMatchAction,
@@ -16,6 +18,7 @@ import {
   type CaroCell,
   type CaroMark,
 } from '@/lib/caro';
+import { MatchmakingButton } from '@/components/caro-actions';
 
 export type CaroMatchState = {
   id: string;
@@ -24,7 +27,9 @@ export type CaroMatchState = {
   resultReason: string | null;
   currentTurn: CaroMark;
   turnStartedAt: string;
+  serverNow: string;
   turnSeconds: number;
+  roomCode: string | null;
   playerXChange: number | null;
   playerOChange: number | null;
   drawOfferedById: string | null;
@@ -52,24 +57,34 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
   const active = initialState.status === 'ACTIVE';
   const myMark: CaroMark = initialState.playerX.id === initialState.currentUserId ? 'X' : 'O';
   const myTurn = active && initialState.currentTurn === myMark;
+  const won = initialState.status === `${myMark}_WON`;
 
   useEffect(() => {
+    const serverOffset = new Date(initialState.serverNow).getTime() - Date.now();
     const updateClock = () =>
       setSeconds(
         Math.max(
           0,
           initialState.turnSeconds -
-            Math.floor((Date.now() - new Date(initialState.turnStartedAt).getTime()) / 1000),
+            Math.floor(
+              (Date.now() + serverOffset - new Date(initialState.turnStartedAt).getTime()) / 1000,
+            ),
         ),
       );
     updateClock();
     const clock = window.setInterval(updateClock, 1000);
-    const polling = window.setInterval(() => router.refresh(), 2500);
+    const polling = active ? window.setInterval(() => router.refresh(), 1000) : undefined;
     return () => {
       window.clearInterval(clock);
-      window.clearInterval(polling);
+      if (polling) window.clearInterval(polling);
     };
-  }, [initialState.turnSeconds, initialState.turnStartedAt, router]);
+  }, [
+    active,
+    initialState.serverNow,
+    initialState.turnSeconds,
+    initialState.turnStartedAt,
+    router,
+  ]);
 
   const board = useMemo(() => {
     const cells: CaroCell[] = Array.from({ length: CARO_BOARD_SIZE ** 2 }, () => null);
@@ -131,6 +146,16 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
     });
   }
 
+  function readyForNextRound() {
+    if (!initialState.roomCode) return;
+    setError('');
+    startTransition(async () => {
+      const result = await readyForPrivateRoomRematchAction(initialState.roomCode!);
+      if (!result.ok) setError(result.error);
+      else router.push(`/games/caro/room/${result.data.code}`);
+    });
+  }
+
   const statusText = active
     ? myTurn
       ? `Đến lượt bạn đặt quân ${myMark}`
@@ -151,6 +176,41 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
             (active ? `Còn ${seconds} giây` : `Kết thúc: ${initialState.resultReason ?? '—'}`)}
         </span>
       </div>
+      {!active && (
+        <section className={`match-result-panel game-panel${won ? ' is-win' : ''}`}>
+          <span className="match-result-panel__icon" aria-hidden="true">
+            {initialState.status === 'DRAW' ? '🤝' : won ? '🏆' : '🌱'}
+          </span>
+          <div>
+            <small>TRẬN ĐẤU ĐÃ KẾT THÚC</small>
+            <h1>{statusText}</h1>
+            <p>
+              {initialState.mode === 'RANKED'
+                ? `Điểm thay đổi: ${myMark === 'X' ? initialState.playerXChange : initialState.playerOChange}`
+                : 'Phòng riêng không ảnh hưởng điểm xếp hạng Caro.'}
+            </p>
+          </div>
+          <div className="match-result-panel__actions">
+            {initialState.mode === 'RANKED' ? (
+              <MatchmakingButton />
+            ) : (
+              initialState.roomCode && (
+                <button
+                  className="game-primary-button"
+                  type="button"
+                  disabled={pending}
+                  onClick={readyForNextRound}
+                >
+                  {pending ? 'Đang chuẩn bị…' : '✓ Sẵn sàng hiệp mới'}
+                </button>
+              )
+            )}
+            <Link className="game-secondary-button" href="/games/caro">
+              ← Thoát về sảnh Caro
+            </Link>
+          </div>
+        </section>
+      )}
       <div className="caro-match-layout">
         <PlayerCard
           player={initialState.playerX}
@@ -191,49 +251,56 @@ export function CaroMatch({ initialState }: { initialState: CaroMatchState }) {
               <em /> chuỗi chiến thắng
             </span>
           </div>
-          <div className="match-actions game-panel">
-            <button
-              className="is-danger"
-              type="button"
-              disabled={!active || pending}
-              onClick={surrender}
-            >
-              ⚑ Đầu hàng
-            </button>
-            {initialState.drawOfferedById &&
-            initialState.drawOfferedById !== initialState.currentUserId ? (
-              <>
+          {active && (
+            <div className="match-actions game-panel">
+              <button
+                className="is-danger"
+                type="button"
+                disabled={!active || pending}
+                onClick={surrender}
+              >
+                ⚑ Đầu hàng
+              </button>
+              {initialState.drawOfferedById &&
+              initialState.drawOfferedById !== initialState.currentUserId ? (
+                <>
+                  <button
+                    className="is-draw"
+                    type="button"
+                    disabled={pending}
+                    onClick={() => drawAction('accept')}
+                  >
+                    ✓ Đồng ý hòa
+                  </button>
+                  <button type="button" disabled={pending} onClick={() => drawAction('decline')}>
+                    × Từ chối
+                  </button>
+                </>
+              ) : (
                 <button
                   className="is-draw"
                   type="button"
-                  disabled={pending}
-                  onClick={() => drawAction('accept')}
+                  disabled={
+                    !active ||
+                    pending ||
+                    initialState.drawOfferedById === initialState.currentUserId
+                  }
+                  onClick={() => drawAction('offer')}
                 >
-                  ✓ Đồng ý hòa
+                  {initialState.drawOfferedById ? 'Đang chờ phản hồi' : '🤝 Xin hòa'}
                 </button>
-                <button type="button" disabled={pending} onClick={() => drawAction('decline')}>
-                  × Từ chối
-                </button>
-              </>
-            ) : (
+              )}
               <button
-                className="is-draw"
                 type="button"
-                disabled={
-                  !active || pending || initialState.drawOfferedById === initialState.currentUserId
-                }
-                onClick={() => drawAction('offer')}
+                onClick={() => setError('Báo lỗi đã được ghi nhận ở giao diện.')}
               >
-                {initialState.drawOfferedById ? 'Đang chờ phản hồi' : '🤝 Xin hòa'}
+                ⚠ Báo lỗi
               </button>
-            )}
-            <button type="button" onClick={() => setError('Báo lỗi đã được ghi nhận ở giao diện.')}>
-              ⚠ Báo lỗi
-            </button>
-            <button type="button" onClick={() => router.refresh()}>
-              ↻ Đồng bộ
-            </button>
-          </div>
+              <button type="button" onClick={() => router.refresh()}>
+                ↻ Đồng bộ
+              </button>
+            </div>
+          )}
         </main>
         <div className="match-opponent-column">
           <PlayerCard
@@ -330,14 +397,18 @@ function PlayerCard({
     <aside className={`match-player game-panel${active ? ' is-active' : ''}`}>
       <span className="turn-pill">{active ? `Đến lượt ${mark}` : `Quân ${mark}`}</span>
       <span className="game-avatar game-avatar--xl">{player.avatar}</span>
-      <h2>{player.name}</h2>
-      <span className="game-rank-pill">✦ {player.rating.toLocaleString('vi-VN')} điểm</span>
-      <strong>
-        {change === null
-          ? player.rating.toLocaleString('vi-VN')
-          : `${change >= 0 ? '+' : ''}${change}`}
-      </strong>
-      <span className="player-hearts">{'❤️'.repeat(player.hearts)}</span>
+      <div className="match-player__identity">
+        <h2>{player.name}</h2>
+        <span className="game-rank-pill">✦ {player.rating.toLocaleString('vi-VN')} điểm</span>
+      </div>
+      <div className="match-player__score">
+        <strong>
+          {change === null
+            ? player.rating.toLocaleString('vi-VN')
+            : `${change >= 0 ? '+' : ''}${change}`}
+        </strong>
+        <span className="player-hearts">{'❤️'.repeat(player.hearts)}</span>
+      </div>
       <div className="turn-clock">
         ◷ <b>00:{String(seconds).padStart(2, '0')}</b>
       </div>

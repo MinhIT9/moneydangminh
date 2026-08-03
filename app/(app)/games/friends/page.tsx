@@ -14,7 +14,7 @@ export default async function GameFriendsPage() {
     name: friend.displayName || friend.gameProfile?.playerCode || 'Người chơi',
     playerCode: friend.gameProfile?.playerCode ?? '—',
     avatar: friend.gameProfile?.avatar ?? '🐷',
-    rating: friend.gameProfile?.rating ?? 500,
+    rating: friend.gameProfile?.caroRating ?? 500,
     presence: friend.gameProfile?.presence ?? 'OFFLINE',
     detail:
       friend.gameProfile?.presence === 'PLAYING'
@@ -25,7 +25,7 @@ export default async function GameFriendsPage() {
             ? 'Đang tìm trận'
             : friend.gameProfile?.presence === 'ONLINE'
               ? 'Đang online'
-              : `${getCaroRank(friend.gameProfile?.rating ?? 500).name}`,
+              : `${getCaroRank(friend.gameProfile?.caroRating ?? 500).name}`,
   });
   const initialState = {
     currentUserId: user.id,

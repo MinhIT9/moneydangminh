@@ -4,13 +4,19 @@ import { randomBytes } from 'node:crypto';
 import { db } from '../src/lib/db';
 import {
   calculateElo,
+  cancelRankedQueue,
   createPrivateRoom,
+  getCaroMatchmakingRange,
   joinPrivateRoom,
   offerCaroDraw,
   playCaroMove,
+  pollRankedMatch,
+  queueForRankedMatch,
+  readyForPrivateRoomRematch,
   respondCaroDraw,
   setRoomReady,
   startPrivateRoom,
+  surrenderCaroMatch,
 } from '../src/lib/game';
 
 const suffix = randomBytes(5).toString('hex');
@@ -19,6 +25,18 @@ const users: string[] = [];
 function verify(condition: boolean, message: string) {
   if (!condition) throw new Error(`Game backend failed: ${message}`);
   console.info(`PASS: ${message}`);
+}
+
+async function matchQueuedPlayers(firstId: string, secondId: string) {
+  await queueForRankedMatch(firstId);
+  const attempts = [
+    await queueForRankedMatch(secondId),
+    await pollRankedMatch(firstId),
+    await pollRankedMatch(secondId),
+  ];
+  const matched = attempts.find((result) => result.status === 'MATCHED');
+  if (!matched || matched.status !== 'MATCHED') throw new Error('Expected ranked match');
+  return matched.matchId;
 }
 
 async function main() {
@@ -76,6 +94,39 @@ async function main() {
       agreedDraw.status === 'DRAW' && agreedDraw.resultReason === 'AGREED_DRAW',
       'draw offer requires and persists opponent acceptance',
     );
+
+    await readyForPrivateRoomRematch(first.id, drawRoom.code);
+    await readyForPrivateRoomRematch(second.id, drawRoom.code);
+    const rematchRoom = await db.caroRoom.findUniqueOrThrow({ where: { id: drawRoom.id } });
+    verify(
+      rematchRoom.status === 'READY' && rematchRoom.hostReady && rematchRoom.guestReady,
+      'both private-room players can ready for another round',
+    );
+    const friendlyRematch = await startPrivateRoom(first.id, drawRoom.code);
+    await surrenderCaroMatch(first.id, friendlyRematch.id);
+
+    const traineeRange = getCaroMatchmakingRange(250);
+    verify(
+      traineeRange.minRating === 0 &&
+        traineeRange.maxRating === 799 &&
+        traineeRange.allowedRanks.join(',') === 'Nhập Môn,Tập Sự,Kỳ Thủ',
+      'ranked matching uses the current Caro rank and one adjacent rank each side',
+    );
+
+    await db.gameProfile.update({ where: { userId: first.id }, data: { caroRating: 250 } });
+    await db.gameProfile.update({ where: { userId: second.id }, data: { caroRating: 750 } });
+    const rankedMatchId = await matchQueuedPlayers(first.id, second.id);
+    verify(Boolean(rankedMatchId), 'adjacent Caro ranks are matched');
+    const rankedMatch = await db.caroMatch.findUniqueOrThrow({
+      where: { id: rankedMatchId },
+    });
+    verify(rankedMatch.turnSeconds === 15, 'ranked matches enforce 15 seconds per turn');
+    await surrenderCaroMatch(first.id, rankedMatch.id);
+
+    const repeatMatchId = await matchQueuedPlayers(first.id, second.id);
+    verify(Boolean(repeatMatchId), 'players can match again when the online player pool is small');
+    await surrenderCaroMatch(first.id, repeatMatchId);
+    await Promise.all([cancelRankedQueue(first.id), cancelRankedQueue(second.id)]);
 
     const elo = calculateElo(500, 700, 1);
     verify(

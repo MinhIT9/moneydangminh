@@ -106,7 +106,25 @@ npm run build
 npm run format
 ```
 
-`build` tự chạy `prebuild`, nên Prisma Client luôn được generate trước `next build`. Sau khi build thành công, thử bản production tại máy:
+`build` tự chạy `prebuild`. Quy trình này xóa các đầu ra build cũ như
+`.next/diagnostics`, `.next/server` và `.next/node_modules`, nhưng bảo toàn
+riêng `.next/cache`. Lệnh dọn dùng `rimraf` với cơ chế retry riêng cho Windows
+để chờ các khóa tệp tạm thời được giải phóng, trong khi cache build vẫn được
+tái sử dụng.
+
+Trước khi build, phải dừng mọi terminal đang chạy `npm run dev` hoặc
+`npm run start` bằng `Ctrl + C`. Windows không cho phép `rimraf` xóa một tệp
+vẫn đang bị tiến trình khác khóa.
+
+Nếu cần chạy riêng bước dọn nhỏ hoặc dọn toàn bộ kết quả build:
+
+```powershell
+npm run clean:diagnostics # Chỉ xóa .next/diagnostics, vẫn giữ cache
+npm run clean:build       # Xóa đầu ra build cũ, bảo toàn .next/cache
+npm run clean             # Xóa toàn bộ .next, chỉ dùng khi cần build sạch
+```
+
+Sau khi build thành công, thử bản production tại máy:
 
 ```powershell
 npm run start

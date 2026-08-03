@@ -23,7 +23,7 @@ export function GameProfileView({ data, isOwner }: { data: ProfileData; isOwner:
   const losses = profile.rankedLosses + profile.friendlyLosses;
   const draws = profile.rankedDraws + profile.friendlyDraws;
   const winRate = total ? Math.round((wins / total) * 1000) / 10 : 0;
-  const rank = getCaroRank(profile.rating);
+  const rank = getCaroRank(profile.caroRating);
 
   return (
     <>
@@ -44,12 +44,12 @@ export function GameProfileView({ data, isOwner }: { data: ProfileData; isOwner:
           </div>
           <div>
             <small>Điểm hiện tại</small>
-            <strong>{profile.rating.toLocaleString('vi-VN')}</strong>
+            <strong>{profile.caroRating.toLocaleString('vi-VN')}</strong>
             <span>{profile.presence}</span>
           </div>
           <div>
             <small>Điểm cao nhất</small>
-            <strong>{profile.peakRating.toLocaleString('vi-VN')}</strong>
+            <strong>{profile.caroPeakRating.toLocaleString('vi-VN')}</strong>
             <span>Kỷ lục cá nhân</span>
           </div>
           <div>
@@ -67,13 +67,13 @@ export function GameProfileView({ data, isOwner }: { data: ProfileData; isOwner:
                   ? `Tiến độ lên mốc ${rank.nextAt.toLocaleString('vi-VN')}`
                   : 'Đã đạt hạng cao nhất'}
               </span>
-              <b>{profile.rating.toLocaleString('vi-VN')} điểm</b>
+              <b>{profile.caroRating.toLocaleString('vi-VN')} điểm</b>
             </p>
             <i>
               <em
                 style={{
                   width: rank.nextAt
-                    ? `${Math.min(100, (profile.rating / rank.nextAt) * 100)}%`
+                    ? `${Math.min(100, (profile.caroRating / rank.nextAt) * 100)}%`
                     : '100%',
                 }}
               />

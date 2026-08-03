@@ -10,6 +10,18 @@ const HEART_RECOVERY_MS = 5 * 60 * 1000;
 const ROOM_LIFETIME_MS = 6 * 60 * 60 * 1000;
 const INVITE_LIFETIME_MS = 10 * 60 * 1000;
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const RANKED_TURN_SECONDS = 15;
+const MATCHMAKING_STALE_MS = 10_000;
+
+const CARO_RANKS = [
+  { name: 'Nhập Môn', short: 'Nhập Môn', min: 0 },
+  { name: 'Tập Sự', short: 'Tập Sự', min: 200 },
+  { name: 'Kỳ Thủ', short: 'Kỳ Thủ', min: 400 },
+  { name: 'Cao Thủ', short: 'Cao Thủ', min: 800 },
+  { name: 'Danh Thủ', short: 'Danh Thủ', min: 1200 },
+  { name: 'Đại Sư', short: 'Đại Sư', min: 1600 },
+  { name: 'Kỳ Vương', short: 'Kỳ Vương', min: 2000 },
+] as const;
 
 type DatabaseClient = Prisma.TransactionClient | typeof db;
 
@@ -31,13 +43,30 @@ function roomCode() {
 }
 
 export function getCaroRank(rating: number) {
-  if (rating >= 2000) return { name: 'Kỳ Vương', short: 'Kỳ Vương', nextAt: null };
-  if (rating >= 1600) return { name: 'Đại Sư', short: 'Đại Sư', nextAt: 2000 };
-  if (rating >= 1200) return { name: 'Danh Thủ', short: 'Danh Thủ', nextAt: 1600 };
-  if (rating >= 800) return { name: 'Cao Thủ', short: 'Cao Thủ', nextAt: 1200 };
-  if (rating >= 400) return { name: 'Kỳ Thủ', short: 'Kỳ Thủ', nextAt: 800 };
-  if (rating >= 200) return { name: 'Tập Sự', short: 'Tập Sự', nextAt: 400 };
-  return { name: 'Nhập Môn', short: 'Nhập Môn', nextAt: 200 };
+  let level = 0;
+  for (let index = 1; index < CARO_RANKS.length; index += 1) {
+    if (rating < CARO_RANKS[index].min) break;
+    level = index;
+  }
+  const current = CARO_RANKS[level];
+  return {
+    ...current,
+    level,
+    nextAt: CARO_RANKS[level + 1]?.min ?? null,
+  };
+}
+
+export function getCaroMatchmakingRange(rating: number) {
+  const current = getCaroRank(rating);
+  const lowestLevel = Math.max(0, current.level - 1);
+  const highestLevel = Math.min(CARO_RANKS.length - 1, current.level + 1);
+  const nextRank = CARO_RANKS[highestLevel + 1];
+
+  return {
+    minRating: CARO_RANKS[lowestLevel].min,
+    maxRating: nextRank ? nextRank.min - 1 : Number.MAX_SAFE_INTEGER,
+    allowedRanks: CARO_RANKS.slice(lowestLevel, highestLevel + 1).map((rank) => rank.name),
+  };
 }
 
 export async function ensureGameProfile(userId: string, client: DatabaseClient = db) {
@@ -111,7 +140,7 @@ export async function getGameOverview(userId: string) {
       },
     }),
     db.gameProfile.findMany({
-      orderBy: [{ rating: 'desc' }, { rankedWins: 'desc' }],
+      orderBy: [{ caroRating: 'desc' }, { rankedWins: 'desc' }],
       take: 10,
       include: { user: { select: { displayName: true } } },
     }),
@@ -299,13 +328,47 @@ export async function setRoomReady(userId: string, rawCode: string, ready: boole
   ]);
 }
 
+export async function readyForPrivateRoomRematch(userId: string, rawCode: string) {
+  const code = normalizeRoomCode(rawCode);
+
+  return db.$transaction(async (tx) => {
+    const room = await tx.caroRoom.findUnique({ where: { code } });
+    if (!room || (room.hostId !== userId && room.guestId !== userId))
+      throw new GameError('Bạn không thuộc phòng này.', 'NOT_ROOM_MEMBER');
+    if (!room.guestId)
+      throw new GameError('Phòng cần đủ hai người để chơi hiệp mới.', 'ROOM_NOT_READY');
+    if (!['FINISHED', 'READY'].includes(room.status))
+      throw new GameError('Phòng chưa thể bắt đầu hiệp mới.', 'ROOM_STATE');
+
+    if (room.status === 'FINISHED') {
+      await tx.caroRoom.updateMany({
+        where: { id: room.id, status: 'FINISHED' },
+        data: { status: 'READY', hostReady: false, guestReady: false },
+      });
+    }
+
+    const updated = await tx.caroRoom.update({
+      where: { id: room.id },
+      data:
+        room.hostId === userId
+          ? { hostReady: true, status: 'READY' }
+          : { guestReady: true, status: 'READY' },
+    });
+    await tx.gameProfile.update({
+      where: { userId },
+      data: { presence: 'IN_ROOM', lastSeenAt: new Date() },
+    });
+    return updated;
+  });
+}
+
 async function createMatchInTransaction(
   tx: Prisma.TransactionClient,
   playerAId: string,
   playerBId: string,
   mode: 'RANKED' | 'FRIENDLY',
   roomId: string | null = null,
-  turnSeconds = 45,
+  turnSeconds = mode === 'RANKED' ? RANKED_TURN_SECONDS : 45,
 ) {
   const [profileA, profileB] = await Promise.all([
     syncGameProfile(playerAId, tx),
@@ -325,8 +388,8 @@ async function createMatchInTransaction(
       playerOId,
       mode,
       turnSeconds,
-      playerXRating: profileX.rating,
-      playerORating: profileO.rating,
+      playerXRating: profileX.caroRating,
+      playerORating: profileO.caroRating,
     },
   });
   await tx.gameProfile.updateMany({
@@ -449,7 +512,7 @@ async function finalizeMatch(
   for (const player of players) {
     const profile = await syncGameProfile(player.id, tx);
     const prefix = match.mode === 'RANKED' ? 'ranked' : 'friendly';
-    const nextRating = Math.max(0, profile.rating + player.ratingChange);
+    const nextRating = Math.max(0, profile.caroRating + player.ratingChange);
     const nextHearts =
       match.mode === 'RANKED'
         ? Math.min(HEART_MAX, Math.max(0, profile.hearts + (player.won ? 1 : player.lost ? -1 : 0)))
@@ -459,8 +522,8 @@ async function finalizeMatch(
     await tx.gameProfile.update({
       where: { userId: player.id },
       data: {
-        rating: nextRating,
-        peakRating: Math.max(profile.peakRating, nextRating),
+        caroRating: nextRating,
+        caroPeakRating: Math.max(profile.caroPeakRating, nextRating),
         hearts: nextHearts,
         heartRecoveryStartedAt: recoveryStartedAt,
         presence: 'ONLINE',
@@ -483,6 +546,7 @@ export async function getMatchSnapshot(userId: string, matchId: string) {
   let match = await db.caroMatch.findFirst({
     where: { id: matchId, OR: [{ playerXId: userId }, { playerOId: userId }] },
     include: {
+      room: { select: { code: true } },
       playerX: { select: { id: true, displayName: true, gameProfile: true } },
       playerO: { select: { id: true, displayName: true, gameProfile: true } },
       moves: { orderBy: { moveNumber: 'asc' } },
@@ -503,6 +567,7 @@ export async function getMatchSnapshot(userId: string, matchId: string) {
     match = await db.caroMatch.findFirst({
       where: { id: matchId, OR: [{ playerXId: userId }, { playerOId: userId }] },
       include: {
+        room: { select: { code: true } },
         playerX: { select: { id: true, displayName: true, gameProfile: true } },
         playerO: { select: { id: true, displayName: true, gameProfile: true } },
         moves: { orderBy: { moveNumber: 'asc' } },
@@ -686,14 +751,14 @@ export async function queueForRankedMatch(userId: string) {
     if (activeMatch) return { status: 'MATCHED' as const, matchId: activeMatch.id };
     const entry = await tx.matchmakingEntry.upsert({
       where: { userId },
-      create: { userId, rating: profile.rating },
-      update: { rating: profile.rating, enqueuedAt: new Date() },
+      create: { userId, caroRating: profile.caroRating },
+      update: { caroRating: profile.caroRating, enqueuedAt: new Date() },
     });
     await tx.gameProfile.update({
       where: { userId },
       data: { presence: 'MATCHMAKING', lastSeenAt: new Date() },
     });
-    return tryMatchmake(tx, userId, entry.rating, entry.enqueuedAt);
+    return tryMatchmake(tx, userId, entry.caroRating, entry.enqueuedAt);
   });
 }
 
@@ -703,43 +768,54 @@ async function tryMatchmake(
   rating: number,
   enqueuedAt: Date,
 ) {
+  const now = new Date();
   const waitedSeconds = Math.floor((Date.now() - enqueuedAt.getTime()) / 1000);
-  const range =
-    waitedSeconds < 10
-      ? 100
-      : waitedSeconds < 20
-        ? 200
-        : Math.min(600, 200 + (waitedSeconds - 20) * 20);
-  const recent = await tx.caroMatch.findMany({
-    where: { mode: 'RANKED', OR: [{ playerXId: userId }, { playerOId: userId }] },
-    orderBy: { startedAt: 'desc' },
-    take: 3,
-    select: { playerXId: true, playerOId: true },
+  const matchmakingRange = getCaroMatchmakingRange(rating);
+
+  await tx.matchmakingEntry.deleteMany({
+    where: { updatedAt: { lt: new Date(now.getTime() - MATCHMAKING_STALE_MS) } },
   });
-  const recentOpponents = recent.map((match) =>
-    match.playerXId === userId ? match.playerOId : match.playerXId,
-  );
+
   const blocked = await tx.gameFriendship.findMany({
     where: { status: 'BLOCKED', OR: [{ requesterId: userId }, { addresseeId: userId }] },
     select: { requesterId: true, addresseeId: true },
   });
   const excluded = new Set([
     userId,
-    ...recentOpponents,
     ...blocked.map((item) => (item.requesterId === userId ? item.addresseeId : item.requesterId)),
   ]);
   const candidates = await tx.matchmakingEntry.findMany({
-    where: { userId: { not: userId }, rating: { gte: rating - range, lte: rating + range } },
+    where: {
+      userId: { not: userId },
+      caroRating: {
+        gte: matchmakingRange.minRating,
+        lte: matchmakingRange.maxRating,
+      },
+      updatedAt: { gte: new Date(now.getTime() - MATCHMAKING_STALE_MS) },
+      OR: [{ enqueuedAt: { lt: enqueuedAt } }, { enqueuedAt, userId: { lt: userId } }],
+    },
     orderBy: { enqueuedAt: 'asc' },
     take: 20,
   });
   const candidate = candidates.find((item) => !excluded.has(item.userId));
-  if (!candidate) return { status: 'QUEUED' as const, waitedSeconds, range };
+  if (!candidate)
+    return {
+      status: 'QUEUED' as const,
+      waitedSeconds,
+      allowedRanks: matchmakingRange.allowedRanks,
+    };
   const claimed = await tx.matchmakingEntry.deleteMany({
     where: { userId: candidate.userId, updatedAt: candidate.updatedAt },
   });
-  if (claimed.count !== 1) return { status: 'QUEUED' as const, waitedSeconds, range };
-  await tx.matchmakingEntry.deleteMany({ where: { userId } });
+  if (claimed.count !== 1)
+    return {
+      status: 'QUEUED' as const,
+      waitedSeconds,
+      allowedRanks: matchmakingRange.allowedRanks,
+    };
+  const selfClaimed = await tx.matchmakingEntry.deleteMany({ where: { userId } });
+  if (selfClaimed.count !== 1)
+    throw new GameError('Hàng chờ vừa thay đổi, hệ thống đang thử ghép lại.', 'QUEUE_CONFLICT');
   const match = await createMatchInTransaction(tx, userId, candidate.userId, 'RANKED');
   return { status: 'MATCHED' as const, matchId: match.id };
 }
@@ -753,7 +829,11 @@ export async function pollRankedMatch(userId: string) {
     if (activeMatch) return { status: 'MATCHED' as const, matchId: activeMatch.id };
     const entry = await tx.matchmakingEntry.findUnique({ where: { userId } });
     if (!entry) return { status: 'IDLE' as const };
-    return tryMatchmake(tx, userId, entry.rating, entry.enqueuedAt);
+    const refreshed = await tx.matchmakingEntry.update({
+      where: { userId },
+      data: { updatedAt: new Date() },
+    });
+    return tryMatchmake(tx, userId, refreshed.caroRating, refreshed.enqueuedAt);
   });
 }
 
@@ -820,7 +900,7 @@ export async function sendRoomMessage(userId: string, rawCode: string, content: 
 
 export async function getLeaderboard() {
   return db.gameProfile.findMany({
-    orderBy: [{ rating: 'desc' }, { rankedWins: 'desc' }],
+    orderBy: [{ caroRating: 'desc' }, { rankedWins: 'desc' }],
     take: 100,
     include: { user: { select: { displayName: true } } },
   });

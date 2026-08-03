@@ -15,6 +15,7 @@ import {
   playCaroMove,
   pollRankedMatch,
   queueForRankedMatch,
+  readyForPrivateRoomRematch,
   removeFriend,
   respondFriendRequest,
   respondCaroDraw,
@@ -82,6 +83,19 @@ export async function setRoomReadyAction(code: string, ready: boolean): Promise<
     await setRoomReady(user.id, code, ready);
     refreshGamePaths();
     return { ok: true, data: undefined };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function readyForPrivateRoomRematchAction(
+  code: string,
+): Promise<GameActionResult<{ code: string }>> {
+  const user = await requireUser();
+  try {
+    const room = await readyForPrivateRoomRematch(user.id, code);
+    refreshGamePaths();
+    return { ok: true, data: { code: room.code } };
   } catch (error) {
     return failure(error);
   }
@@ -255,7 +269,7 @@ export async function searchGamePlayersAction(query: string): Promise<
         id: player.userId,
         playerCode: player.playerCode,
         avatar: player.avatar,
-        rating: player.rating,
+        rating: player.caroRating,
         presence: player.presence,
         displayName: player.user.displayName,
       })),

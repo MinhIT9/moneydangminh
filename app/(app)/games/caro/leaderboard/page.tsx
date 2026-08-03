@@ -39,8 +39,8 @@ export default async function CaroLeaderboardPage() {
                 </b>
                 <span className="game-avatar game-avatar--xl">{player.avatar}</span>
                 <h2>{player.user.displayName || player.playerCode}</h2>
-                <p>{getCaroRank(player.rating).name}</p>
-                <strong>{player.rating.toLocaleString('vi-VN')}</strong>
+                <p>{getCaroRank(player.caroRating).name}</p>
+                <strong>{player.caroRating.toLocaleString('vi-VN')}</strong>
               </article>
             ))}
           </div>
@@ -63,8 +63,8 @@ export default async function CaroLeaderboardPage() {
                   <i className="game-avatar">{player.avatar}</i>
                   <strong>{player.user.displayName || player.playerCode}</strong>
                 </span>
-                <span>{getCaroRank(player.rating).name}</span>
-                <strong>{player.rating.toLocaleString('vi-VN')}</strong>
+                <span>{getCaroRank(player.caroRating).name}</span>
+                <strong>{player.caroRating.toLocaleString('vi-VN')}</strong>
                 <span>{player.rankedWins + player.rankedLosses + player.rankedDraws}</span>
               </div>
             ))}
@@ -77,9 +77,9 @@ export default async function CaroLeaderboardPage() {
             <h2>Hạng của bạn</h2>
             <strong>{ownPosition ? `#${ownPosition}` : 'Ngoài top 100'}</strong>
             <p>
-              {user.displayName} · {getCaroRank(ownProfile.rating).name}
+              {user.displayName} · {getCaroRank(ownProfile.caroRating).name}
             </p>
-            <b>{ownProfile.rating.toLocaleString('vi-VN')} điểm</b>
+            <b>{ownProfile.caroRating.toLocaleString('vi-VN')} điểm</b>
             <Link className="game-primary-button" href="/games/caro">
               Chơi để tăng hạng
             </Link>

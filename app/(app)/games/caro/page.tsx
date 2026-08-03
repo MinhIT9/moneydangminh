@@ -26,10 +26,10 @@ export default async function CaroLobbyPage() {
   const wins = overview.profile.rankedWins + overview.profile.friendlyWins;
   const profileView = {
     playerId: overview.profile.playerCode,
-    score: overview.profile.rating,
-    peakScore: overview.profile.peakRating,
-    rank: getCaroRank(overview.profile.rating).name,
-    rankShort: getCaroRank(overview.profile.rating).short,
+    score: overview.profile.caroRating,
+    peakScore: overview.profile.caroPeakRating,
+    rank: getCaroRank(overview.profile.caroRating).name,
+    rankShort: getCaroRank(overview.profile.caroRating).short,
     hearts: overview.profile.hearts,
     totalMatches,
     wins,
@@ -60,7 +60,7 @@ export default async function CaroLobbyPage() {
           : friend.gameProfile?.presence === 'OFFLINE'
             ? 'Ngoại tuyến'
             : 'Đang online',
-      score: friend.gameProfile?.rating ?? 500,
+      score: friend.gameProfile?.caroRating ?? 500,
     };
   });
   const matchItems = overview.recentMatches.map((match) => {
@@ -87,8 +87,8 @@ export default async function CaroLobbyPage() {
     rank: index + 1,
     name: entry.user.displayName || entry.playerCode,
     avatar: entry.avatar,
-    tier: getCaroRank(entry.rating).name,
-    score: entry.rating,
+    tier: getCaroRank(entry.caroRating).name,
+    score: entry.caroRating,
   }));
 
   return (
@@ -123,8 +123,8 @@ export default async function CaroLobbyPage() {
               <ul>
                 <li>💔 Thua: tốn 1 tim</li>
                 <li>💚 Thắng: hồi 1 tim</li>
-                <li>◷ 5 phút hồi 1 tim</li>
-                <li>▦ Bàn cờ 19×19</li>
+                <li>◷ 15 giây cho mỗi lượt</li>
+                <li>✦ Ghép cùng hạng hoặc hạng liền kề</li>
               </ul>
               <MatchmakingButton />
             </article>
@@ -138,7 +138,7 @@ export default async function CaroLobbyPage() {
               <ul>
                 <li>🎟️ Không tốn tim</li>
                 <li>✦ Không ảnh hưởng điểm hạng</li>
-                <li>⚙ Tùy chỉnh luật chơi</li>
+                <li>⚙ Không giới hạn cấp bậc</li>
                 <li>💬 Có chat trong phòng</li>
               </ul>
               <CreateRoomButton />

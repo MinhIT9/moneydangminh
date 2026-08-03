@@ -1821,6 +1821,7 @@
 
 .match-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
@@ -1832,10 +1833,71 @@
   color: #676d87;
   font-size: 11px;
 }
+.match-result-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-color: #eadfff;
+  background: linear-gradient(120deg, #faf7ff, #fff 55%, #fff7ec);
+}
+.match-result-panel.is-win {
+  border-color: #bfe8cd;
+  background: linear-gradient(120deg, #effcf4, #fff 55%, #fff8df);
+}
+.match-result-panel__icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border-radius: 18px;
+  background: #eee5ff;
+  font-size: 32px;
+}
+.match-result-panel small,
+.match-result-panel h1,
+.match-result-panel p {
+  margin: 0;
+}
+.match-result-panel small {
+  color: #8a7ca4;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.match-result-panel h1 {
+  margin-top: 3px;
+  font-size: clamp(20px, 2.1vw, 29px);
+}
+.match-result-panel p {
+  margin-top: 4px;
+  color: #727890;
+  font-size: 12px;
+}
+.match-result-panel__actions {
+  display: flex;
+  align-items: stretch;
+  gap: 9px;
+}
+.match-result-panel__actions .game-action-stack {
+  min-width: 190px;
+}
+.match-result-panel__actions .game-secondary-button,
+.match-result-panel__actions > .game-primary-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
 .caro-match-layout {
   display: grid;
-  grid-template-columns: 155px minmax(460px, 1fr) 265px;
+  max-width: 100%;
+  grid-template-columns: 145px minmax(0, 680px) minmax(225px, 265px);
   align-items: start;
+  justify-content: center;
   gap: 16px;
 }
 .match-player {
@@ -1851,11 +1913,22 @@
   border-color: #aa82ff;
   box-shadow: 0 12px 30px rgba(113, 56, 244, 0.14);
 }
-.match-player h2 {
-  margin: 0;
-  font-size: 16px;
+.match-player__identity,
+.match-player__score {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
 }
-.match-player > strong {
+.match-player h2 {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-player__score > strong {
   color: var(--game-purple);
   font-size: 21px;
 }
@@ -1887,9 +1960,16 @@
   font-size: 10px;
 }
 .caro-board-column {
+  display: grid;
+  width: 100%;
   min-width: 0;
+  justify-items: center;
 }
 .caro-board-wrap {
+  box-sizing: border-box;
+  width: min(100%, 72dvh, 680px);
+  max-width: 100%;
+  overflow: hidden;
   padding: 13px;
   background: #f3c58f;
   box-shadow:
@@ -1898,6 +1978,8 @@
 }
 .caro-board {
   display: grid;
+  width: 100%;
+  max-width: 100%;
   aspect-ratio: 1;
   grid-template-columns: repeat(19, 1fr);
   overflow: hidden;
@@ -1921,6 +2003,7 @@
   font-size: clamp(9px, 1.3vw, 20px);
   font-weight: 900;
   line-height: 1;
+  touch-action: manipulation;
 }
 .caro-board button:not(:disabled):hover {
   background: rgba(116, 56, 244, 0.13);
@@ -1973,6 +2056,7 @@
 }
 .match-actions {
   display: grid;
+  width: min(100%, 72dvh, 680px);
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   padding: 13px;
@@ -2008,8 +2092,11 @@
 }
 .match-chat__messages {
   display: grid;
+  max-height: 220px;
   gap: 8px;
   margin: 13px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .match-chat__messages > div {
   display: grid;
@@ -2124,7 +2211,7 @@
     display: none;
   }
   .caro-match-layout {
-    grid-template-columns: 135px minmax(440px, 1fr);
+    grid-template-columns: 125px minmax(0, 620px);
   }
   .match-opponent-column {
     grid-column: 1 / -1;
@@ -2169,17 +2256,37 @@
   }
   .match-player {
     position: static;
-    display: flex;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: start;
     text-align: left;
   }
+  .match-player .turn-pill {
+    grid-column: 1 / -1;
+  }
   .match-player .game-avatar--xl {
+    grid-row: 2 / 4;
     width: 55px;
     height: 55px;
     font-size: 30px;
   }
-  .match-player .player-links {
-    display: none;
+  .match-player__identity {
+    grid-row: 2;
+    grid-column: 2;
+    justify-items: start;
+  }
+  .match-player__score {
+    display: flex;
+    grid-row: 3;
+    grid-column: 2;
+    align-items: center;
+    justify-items: start;
+  }
+  .match-player .turn-clock {
+    grid-row: 2 / 4;
+    grid-column: 3;
+    margin: 0;
   }
   .match-opponent-column {
     grid-column: auto;
@@ -2187,6 +2294,13 @@
   }
   .match-opponent-column .match-player {
     grid-column: 1 / -1;
+  }
+  .match-result-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .match-result-panel__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }
 
@@ -2348,8 +2462,14 @@
     min-width: 620px;
   }
   .caro-board-wrap {
+    width: 100%;
     padding: 7px;
     border-radius: 13px;
+  }
+  .caro-board-legend {
+    width: 100%;
+    gap: 8px 14px;
+    padding-inline: 4px;
   }
   .match-opponent-column {
     grid-template-columns: 1fr;
@@ -2363,9 +2483,59 @@
   .caro-board button {
     font-size: clamp(8px, 3.2vw, 15px);
   }
+  .match-result-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .match-result-panel__icon {
+    margin-inline: auto;
+  }
+  .match-result-panel__actions {
+    display: grid;
+    grid-column: auto;
+    width: 100%;
+  }
+  .match-result-panel__actions .game-action-stack {
+    min-width: 0;
+  }
+  .match-result-panel__actions .game-primary-button,
+  .match-result-panel__actions .game-secondary-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
+  .match-status {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .match-player {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding: 13px 10px;
+  }
+  .match-player .game-avatar--xl {
+    width: 44px;
+    height: 44px;
+    font-size: 23px;
+  }
+  .match-player h2 {
+    font-size: 14px;
+  }
+  .match-player .game-rank-pill,
+  .match-player__score {
+    font-size: 9px;
+  }
+  .match-player__score > strong,
+  .turn-clock b {
+    font-size: 16px;
+  }
+  .player-hearts {
+    max-width: 92px;
+    overflow: hidden;
+  }
   .game-page-title {
     align-items: flex-start;
   }

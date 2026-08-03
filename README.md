@@ -13,8 +13,10 @@ Backend game hiện hỗ trợ:
 - Phòng riêng, sẵn sàng, bắt đầu trận, lời mời và chat phòng.
 - Bàn 19×19 với kiểm tra lượt, ô trống, thời gian và luật thắng phía server.
 - Đầu hàng và đề nghị hòa có xác nhận từ đối thủ.
-- Hàng chờ đấu hạng, phạm vi Elo mở rộng và hạn chế ghép lặp đối thủ.
-- Tim hồi theo thời gian, Elo, thống kê và bảng xếp hạng lưu MariaDB.
+- Hàng chờ đấu hạng theo cấp Caro hiện tại và hai cấp liền kề, tự loại người chơi mất kết nối.
+- Trận xếp hạng có 15 giây mỗi lượt và dùng thời gian server để đồng bộ hai phía.
+- Sau trận có thể tìm đối thủ mới, sẵn sàng hiệp tiếp theo trong phòng hoặc trở về sảnh.
+- Tim hồi theo thời gian; điểm Elo Caro, thống kê và bảng xếp hạng lưu MariaDB độc lập với game khác.
 - Kết bạn, chấp nhận/từ chối, chặn và tin nhắn trực tiếp có giới hạn tốc độ.
 - API polling riêng tư tại `/api/games/*`, không cache và không index.
 
@@ -101,7 +103,9 @@ npm run lint
 npm run build
 ```
 
-`npm run build` cũng tự sinh Prisma Client. Không sửa trực tiếp thư mục
+`npm run build` dọn các đầu ra build cũ nhưng giữ `.next/cache`, rồi tự sinh
+Prisma Client trước khi build. Hãy dừng `npm run dev` hoặc `npm run start`
+trước khi build để Windows không giữ khóa tệp. Không sửa trực tiếp thư mục
 `src/generated/prisma` vì đó là mã được tạo lại từ schema.
 
 ## Triển khai production

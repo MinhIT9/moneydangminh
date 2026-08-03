@@ -30,10 +30,10 @@ export default async function GamesPage() {
   const wins = overview.profile.rankedWins + overview.profile.friendlyWins;
   const profileView = {
     playerId: overview.profile.playerCode,
-    score: overview.profile.rating,
-    peakScore: overview.profile.peakRating,
-    rank: getCaroRank(overview.profile.rating).name,
-    rankShort: getCaroRank(overview.profile.rating).short,
+    score: overview.profile.caroRating,
+    peakScore: overview.profile.caroPeakRating,
+    rank: getCaroRank(overview.profile.caroRating).name,
+    rankShort: getCaroRank(overview.profile.caroRating).short,
     hearts: overview.profile.hearts,
     totalMatches,
     wins,
@@ -64,7 +64,7 @@ export default async function GamesPage() {
           : friend.gameProfile?.presence === 'OFFLINE'
             ? 'Ngoại tuyến'
             : 'Đang online',
-      score: friend.gameProfile?.rating ?? 500,
+      score: friend.gameProfile?.caroRating ?? 500,
     };
   });
   const matchItems = overview.recentMatches.map((match) => {
@@ -91,8 +91,8 @@ export default async function GamesPage() {
     rank: index + 1,
     name: entry.user.displayName || entry.playerCode,
     avatar: entry.avatar,
-    tier: getCaroRank(entry.rating).name,
-    score: entry.rating,
+    tier: getCaroRank(entry.caroRating).name,
+    score: entry.caroRating,
   }));
 
   return (

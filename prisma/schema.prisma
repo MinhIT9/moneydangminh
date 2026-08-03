@@ -313,8 +313,9 @@ model GameProfile {
   presence               GamePresence @default(OFFLINE)
   hearts                 Int          @default(5)
   heartRecoveryStartedAt DateTime?    @map("heart_recovery_started_at")
-  rating                 Int          @default(500)
-  peakRating             Int          @default(500) @map("peak_rating")
+  // Điểm này chỉ thuộc Cờ Caro. Mỗi game mới phải có trường/model xếp hạng riêng.
+  caroRating             Int          @default(500) @map("rating")
+  caroPeakRating         Int          @default(500) @map("peak_rating")
   rankedWins             Int          @default(0) @map("ranked_wins")
   rankedLosses           Int          @default(0) @map("ranked_losses")
   rankedDraws            Int          @default(0) @map("ranked_draws")
@@ -329,7 +330,7 @@ model GameProfile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([rating])
+  @@index([caroRating])
   @@index([presence, lastSeenAt])
   @@map("game_profiles")
 }
@@ -496,12 +497,12 @@ model GameNotification {
 
 model MatchmakingEntry {
   userId     String   @id @map("user_id") @db.VarChar(30)
-  rating     Int
+  caroRating Int      @map("rating")
   enqueuedAt DateTime @default(now()) @map("enqueued_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([rating, enqueuedAt])
+  @@index([caroRating, enqueuedAt])
   @@map("matchmaking_queue")
 }
