@@ -7,11 +7,12 @@
 
 .income-plan-hero {
   position: relative;
+  z-index: 20;
   display: grid;
   min-height: 320px;
   grid-template-columns: minmax(0, 0.9fr) minmax(390px, 1.1fr);
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(139, 111, 238, 0.2);
   border-radius: 28px;
   background:
@@ -87,6 +88,8 @@
   position: relative;
   align-self: stretch;
   min-height: 320px;
+  overflow: hidden;
+  border-radius: 0 28px 28px 0;
 }
 
 .income-plan-hero__art img {
@@ -614,6 +617,7 @@
 
   .income-plan-hero__art {
     min-height: 280px;
+    border-radius: 0 0 22px 22px;
   }
 
   .income-plan-hero__art img {

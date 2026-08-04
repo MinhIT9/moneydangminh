@@ -2677,6 +2677,7 @@ summary:focus-visible,
 
 .dashboard-hero {
   position: relative;
+  z-index: 20;
   isolation: isolate;
   display: grid;
   min-height: 270px;

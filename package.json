@@ -1,6 +1,6 @@
 {
   "name": "moneydangminh",
-  "version": "8.3.0",
+  "version": "8.3.1",
   "private": true,
   "description": "Heo Xinh — saving, personal finance, and casual games built with Next.js and MariaDB.",
   "scripts": {

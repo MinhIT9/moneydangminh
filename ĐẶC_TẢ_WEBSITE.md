@@ -1,6 +1,6 @@
 # Đặc tả website Heo Xinh
 
-> Phiên bản sản phẩm: **V8.3.0**
+> Phiên bản sản phẩm: **V8.3.1**
 > Trạng thái tài liệu: **Đặc tả theo hệ thống đang hoạt động (as-built)**  
 > Ngày cập nhật: **03/08/2026**
 
