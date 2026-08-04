@@ -7,6 +7,10 @@ trị để mở/đóng đăng ký và quản lý tài khoản thường. Khu C�
 game có backend MariaDB, Server Actions và API HTTP. Nước đi, phòng, tim, Elo,
 bạn bè, chat, lời mời và kết quả trận đều được xác thực phía máy chủ.
 
+Landing page V8.4 sử dụng nhận diện Heo Xinh mới với mascot heo đất, phần giới thiệu tài chính và Cờ Caro XO, nhóm đối tượng sử dụng, quy trình ba bước, FAQ và CTA responsive cho cả desktop lẫn điện thoại nhỏ.
+
+Khu đăng nhập và đăng ký V8.5 dùng chung một auth shell responsive, có mascot thương hiệu, hỗ trợ song ngữ, liên kết hỗ trợ thực, biểu tượng trường nhập và nút hiện/ẩn mật khẩu có khả năng truy cập.
+
 Khu tài chính có thêm **Kế hoạch thu nhập**: dự báo số tiền cần kiếm theo ngày,
 tuần và tháng từ thu chi thực tế, lịch làm, khoản chi sắp tới, nợ đến hạn và vùng
 đệm mong muốn. Hệ thống chỉ lưu giả định của người dùng; mọi kết quả được tính

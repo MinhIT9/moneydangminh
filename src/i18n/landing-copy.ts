@@ -7,12 +7,14 @@ type LandingCopy = {
     features: string;
     audience: string;
     questions: string;
+    support: string;
   };
   login: string;
   startFree: string;
   hero: {
     eyebrow: string;
     title: string;
+    titleAccent: string;
     description: string;
     primaryAction: string;
     secondaryAction: string;
@@ -29,6 +31,11 @@ type LandingCopy = {
     recent: string;
     incomeItem: string;
     expenseItem: string;
+    savings: string;
+    savingsChange: string;
+    gameScore: string;
+    gameScoreValue: string;
+    gameScoreHint: string;
   };
   features: {
     eyebrow: string;
@@ -69,6 +76,15 @@ type LandingCopy = {
     description: string;
     privacy: string;
     support: string;
+    product: string;
+    about: string;
+    features: string;
+    audience: string;
+    questions: string;
+    guide: string;
+    introduction: string;
+    terms: string;
+    copyright: string;
   };
 };
 
@@ -80,12 +96,14 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       features: 'Tính năng',
       audience: 'Dành cho bạn',
       questions: 'Câu hỏi',
+      support: 'Hỗ trợ',
     },
     login: 'Đăng nhập',
     startFree: 'Bắt đầu miễn phí',
     hero: {
       eyebrow: 'Sổ thu chi nhẹ nhàng cho mỗi ngày',
-      title: 'Thu chi rõ ràng, sống nhẹ nhàng.',
+      title: 'Tiết kiệm thông minh',
+      titleAccent: 'Giải trí mỗi ngày',
       description:
         'Ghi một khoản thu hoặc chi trong vài giây. Heo Xinh giúp bạn nhìn lại tháng của mình rõ ràng hơn, rồi thư giãn với trò chơi trí tuệ nhẹ nhàng.',
       primaryAction: 'Tạo sổ thu chi của tôi',
@@ -103,6 +121,11 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       recent: 'Ghi chép gần đây',
       incomeItem: 'Chạy Bee',
       expenseItem: 'Tiền chợ',
+      savings: 'Tổng tiết kiệm',
+      savingsChange: '+12% so với tháng trước',
+      gameScore: 'Điểm Cờ Caro XO',
+      gameScoreValue: '1.250',
+      gameScoreHint: 'Hạng Kỳ Thủ',
     },
     features: {
       eyebrow: 'Đủ đơn giản để dùng mỗi ngày',
@@ -124,6 +147,11 @@ export const landingCopy: Record<Locale, LandingCopy> = {
           description:
             'Ghi kèm tiền mặt, MoMo hay ngân hàng nếu cần đối chiếu; không bắt buộc phải quản lý tài khoản phức tạp.',
         },
+        {
+          title: 'Thư giãn với Cờ Caro XO',
+          description:
+            'Quản lý tài chính xong, bạn có thể nghỉ một chút với những ván cờ trí tuệ nhẹ nhàng.',
+        },
       ],
     },
     audience: {
@@ -141,6 +169,11 @@ export const landingCopy: Record<Locale, LandingCopy> = {
         {
           title: 'Người làm tự do',
           description: 'Ghi lại thu nhập từng việc, tiền tip, chi phí đi lại và các khoản cần trả.',
+        },
+        {
+          title: 'Người thích sự đơn giản',
+          description:
+            'Ghi nhanh tiền vào, tiền ra mà không phải học các khái niệm kế toán phức tạp.',
         },
       ],
     },
@@ -207,6 +240,15 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       description: 'Thu chi rõ ràng, sống nhẹ nhàng.',
       privacy: 'Chính sách riêng tư',
       support: 'Hỗ trợ',
+      product: 'Sản phẩm',
+      about: 'Về chúng tôi',
+      features: 'Tính năng',
+      audience: 'Đối tượng sử dụng',
+      questions: 'Câu hỏi thường gặp',
+      guide: 'Hướng dẫn sử dụng',
+      introduction: 'Giới thiệu Heo Xinh',
+      terms: 'Điều khoản sử dụng',
+      copyright: '© 2026 Heo Xinh. Tiết kiệm và giải trí.',
     },
   },
   en: {
@@ -216,12 +258,14 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       features: 'Features',
       audience: 'For you',
       questions: 'FAQ',
+      support: 'Support',
     },
     login: 'Sign in',
     startFree: 'Start for free',
     hero: {
       eyebrow: 'A lighter money journal for every day',
-      title: 'Clear finances, lighter living.',
+      title: 'Save smarter',
+      titleAccent: 'Enjoy every day',
       description:
         'Record an income or expense in seconds. Heo Xinh helps you see your month clearly and unwind with a light strategy game.',
       primaryAction: 'Create my money journal',
@@ -239,6 +283,11 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       recent: 'Recent records',
       incomeItem: 'Bee driving',
       expenseItem: 'Groceries',
+      savings: 'Total saved',
+      savingsChange: '+12% from last month',
+      gameScore: 'Caro XO rating',
+      gameScoreValue: '1,250',
+      gameScoreHint: 'Skilled Player rank',
     },
     features: {
       eyebrow: 'Simple enough for every day',
@@ -260,6 +309,11 @@ export const landingCopy: Record<Locale, LandingCopy> = {
           description:
             'Add cash, MoMo, or bank details when you want to reconcile later; complex account management is never required.',
         },
+        {
+          title: 'Unwind with Caro XO',
+          description:
+            'After checking your money, take a light break with a friendly strategy match.',
+        },
       ],
     },
     audience: {
@@ -277,6 +331,10 @@ export const landingCopy: Record<Locale, LandingCopy> = {
         {
           title: 'Freelancers',
           description: 'Record income per job, tips, travel costs, and upcoming payments.',
+        },
+        {
+          title: 'People who value simplicity',
+          description: 'Record money in and out without learning complicated accounting concepts.',
         },
       ],
     },
@@ -343,6 +401,15 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       description: 'Clear finances, lighter living.',
       privacy: 'Privacy policy',
       support: 'Support',
+      product: 'Product',
+      about: 'About',
+      features: 'Features',
+      audience: 'Who it is for',
+      questions: 'Frequently asked questions',
+      guide: 'User guide',
+      introduction: 'About Heo Xinh',
+      terms: 'Terms of use',
+      copyright: '© 2026 Heo Xinh. Save and play.',
     },
   },
 };

@@ -1,8 +1,8 @@
 # Đặc tả website Heo Xinh
 
-> Phiên bản sản phẩm: **V8.3.1**
+> Phiên bản sản phẩm: **V8.5.0**
 > Trạng thái tài liệu: **Đặc tả theo hệ thống đang hoạt động (as-built)**  
-> Ngày cập nhật: **03/08/2026**
+> Ngày cập nhật: **04/08/2026**
 
 ## 1. Tổng quan sản phẩm
 
@@ -121,6 +121,8 @@ Landing page phải:
 - Truy cập được mà không cần đăng nhập.
 - Hiển thị thương hiệu, slogan và lời kêu gọi đăng ký.
 - Trình bày nhóm tính năng, nhóm người dùng phù hợp, quy trình sử dụng và FAQ.
+- Dùng hệ nhận diện Heo Xinh màu hồng, mascot heo đất 3D, các thẻ số liệu minh họa và hình ảnh riêng cho từng nhóm người dùng.
+- Bố cục phải thích ứng từ desktop đến điện thoại nhỏ; nội dung quan trọng không phụ thuộc hiệu ứng mới hiển thị.
 - Có liên kết đến đăng nhập, đăng ký, chính sách riêng tư và hỗ trợ.
 - Hỗ trợ tiếng Việt mặc định và tiếng Anh tùy chọn.
 - Có hình minh họa responsive và nội dung thay thế cho hình ảnh.
@@ -128,6 +130,8 @@ Landing page phải:
 - Có canonical URL, Open Graph và Twitter Card.
 
 ### 6.2. Đăng ký
+
+Trang đăng nhập và đăng ký dùng chung một giao diện xác thực responsive gồm nhận diện Heo Xinh, minh họa mascot, liên kết hỗ trợ, chuyển ngôn ngữ và điều hướng pháp lý. Biểu mẫu có biểu tượng theo trường, trạng thái focus rõ ràng và nút hiện/ẩn mật khẩu hỗ trợ bàn phím lẫn trình đọc màn hình.
 
 Người dùng đăng ký bằng:
 
