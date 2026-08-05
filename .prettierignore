@@ -1,6 +1,0 @@
-node_modules/
-.next/
-src/generated/
-coverage/
-*.lock
-next-env.d.ts
